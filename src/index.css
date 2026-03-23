@@ -33,6 +33,11 @@ body {
   min-width: 320px;
 }
 
+strong {
+  color: #ffffff;
+  font-weight: 650;
+}
+
 .app {
   position: relative;
   width: 100%;
