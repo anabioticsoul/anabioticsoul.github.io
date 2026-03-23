@@ -1,0 +1,176 @@
+/* --- 基础样式 --- */
+:root {
+    --bg-color: #010105; /* 接近极黑的深夜 */
+    --main-text: #e0e0e0; /* 柔和的白，避免刺眼 */
+    --accent-color: #a3b1ff; /* 淡雅的星光蓝，用于强调 */
+    --meta-text: #888888; /* 灰色用于次要信息 */
+    --font-heading: 'Noto Serif SC', serif; /* 标题用衬线体，增加厚重感 */
+    --font-body: 'Poppins', sans-serif; /* 正文用无衬线体，现代清晰 */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    background-color: var(--bg-color);
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--main-text);
+    line-height: 1.8;
+    overflow-x: hidden; /* 防止互动背景溢出 */
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.3s ease;
+}
+
+/* --- 鼠标互动背景画布 --- */
+#geometry-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* 保证在所有内容之下 */
+}
+
+/* --- 页面布局容器 --- */
+.main-wrapper {
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+    z-index: 1; /* 保证内容在画布之上 */
+}
+
+/* --- 头部导航 --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 40px 0;
+}
+
+header .logo {
+    font-size: 1.5rem;
+    font-weight: 200;
+    letter-spacing: 4px;
+    color: var(--accent-color);
+}
+
+header nav {
+    display: flex;
+    gap: 30px;
+}
+
+header nav a {
+    font-size: 0.9rem;
+    font-weight: 200;
+    letter-spacing: 1px;
+}
+
+header nav a:hover {
+    color: var(--accent-color);
+}
+
+/* --- 主体内容区 --- */
+main {
+    padding-bottom: 80px;
+}
+
+/* --- 英雄区 --- */
+.hero {
+    height: 60vh; /* 占视口高度的一半多 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-bottom: 60px;
+}
+
+.hero h1 {
+    font-family: var(--font-heading);
+    font-size: 4rem;
+    font-weight: 700;
+    background: linear-gradient(to right, #ffffff, #a3b1ff, #555555);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    font-weight: 200;
+    font-size: 1.2rem;
+    color: var(--meta-text);
+}
+
+/* --- 文章列表 --- */
+.post-list h2 {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin-bottom: 40px;
+    color: var(--accent-color);
+}
+
+.post-item {
+    margin-bottom: 60px;
+    border-bottom: 1px solid #1a1a1a;
+    padding-bottom: 40px;
+}
+
+.post-item:last-child {
+    border-bottom: none;
+}
+
+.post-meta {
+    font-size: 0.8rem;
+    color: var(--meta-text);
+    margin-bottom: 10px;
+    display: flex;
+    gap: 15px;
+    letter-spacing: 1px;
+}
+
+.post-item h3 {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin-bottom: 15px;
+}
+
+.post-item h3 a:hover {
+    color: var(--accent-color);
+}
+
+.post-item p {
+    font-weight: 200;
+    font-size: 1rem;
+    color: #c0c0c0;
+    margin-bottom: 20px;
+}
+
+.read-more {
+    font-size: 0.8rem;
+    color: var(--accent-color);
+    letter-spacing: 1px;
+}
+
+/* --- 页脚 --- */
+footer {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--meta-text);
+    font-size: 0.8rem;
+    border-top: 1px solid #1a1a1a;
+}
