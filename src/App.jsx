@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Sparkles, Stars, Text, Trail, Html, Line } from '@react-three/drei'
+import { Sparkles, Stars, Text, Html, Line } from '@react-three/drei'
 import * as THREE from 'three'
+import Faifnir from './Fafnir'
 
 const SECTION_DEFS = [
   {
@@ -54,6 +55,14 @@ const SECTION_DEFS = [
   },
 ]
 
+function lerp(a, b, t) {
+  return a + (b - a) * t
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value))
+}
+
 function useKeys() {
   const [keys, setKeys] = useState({})
 
@@ -71,14 +80,6 @@ function useKeys() {
   }, [])
 
   return keys
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value))
 }
 
 function SpaceBackdrop() {
@@ -151,7 +152,7 @@ function NebulaRings() {
 
 function PlanetMarker({ active, color }) {
   const ref = useRef()
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!ref.current) return
     ref.current.rotation.y += delta * 0.32
     ref.current.rotation.x += delta * 0.08
@@ -209,7 +210,7 @@ function BinaryMarker({ active, color }) {
   const b = useRef()
   const group = useRef()
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const t = state.clock.elapsedTime
     if (a.current) {
       a.current.position.x = Math.cos(t * 1.1) * 1.8
@@ -331,65 +332,6 @@ function SectionMarkers({ activeSection, reveal }) {
   )
 }
 
-function EngineGlow({ boost }) {
-  const ref = useRef()
-  useFrame((_, delta) => {
-    if (!ref.current) return
-    ref.current.scale.y = lerp(ref.current.scale.y, boost ? 2.7 : 1.45, 6 * delta)
-    ref.current.material.opacity = lerp(ref.current.material.opacity, boost ? 0.95 : 0.68, 6 * delta)
-  })
-
-  return (
-    <mesh ref={ref} position={[0, 0, 1.45]} rotation={[Math.PI / 2, 0, 0]}>
-      <coneGeometry args={[0.18, 1.7, 24, 1, true]} />
-      <meshBasicMaterial color="#78a8ff" transparent opacity={0.7} side={THREE.DoubleSide} />
-    </mesh>
-  )
-}
-
-function ShipModel({ boost, banking, visible = true }) {
-  return (
-    <group visible={visible} rotation={[0, 0, banking * 0.9]}>
-      <Trail width={0.85} length={7} color="#7cb1ff" attenuation={(t) => t * t}>
-        <group>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[0.34, 2.4, 24]} />
-            <meshStandardMaterial color="#dbe7ff" metalness={0.65} roughness={0.2} />
-          </mesh>
-
-          <mesh position={[0, 0.14, 0.18]}>
-            <sphereGeometry args={[0.34, 24, 24]} />
-            <meshStandardMaterial
-              color="#0f1730"
-              emissive="#315eb8"
-              emissiveIntensity={0.45}
-              metalness={0.6}
-              roughness={0.18}
-            />
-          </mesh>
-
-          <mesh position={[0.8, -0.08, 0.15]} rotation={[0.2, 0.12, -0.28]}>
-            <boxGeometry args={[1.35, 0.08, 0.54]} />
-            <meshStandardMaterial color="#a7bbef" metalness={0.4} roughness={0.42} />
-          </mesh>
-
-          <mesh position={[-0.8, -0.08, 0.15]} rotation={[0.2, -0.12, 0.28]}>
-            <boxGeometry args={[1.35, 0.08, 0.54]} />
-            <meshStandardMaterial color="#a7bbef" metalness={0.4} roughness={0.42} />
-          </mesh>
-
-          <mesh position={[0, -0.28, 0.7]}>
-            <boxGeometry args={[0.28, 0.28, 1.4]} />
-            <meshStandardMaterial color="#ced9f9" metalness={0.45} roughness={0.3} />
-          </mesh>
-
-          <EngineGlow boost={boost} />
-        </group>
-      </Trail>
-    </group>
-  )
-}
-
 function MapLabels({ sections, mode, activeSection }) {
   if (mode !== 'map') return null
 
@@ -441,15 +383,6 @@ function SceneController({
   const tempUp = useMemo(() => new THREE.Vector3(0, 1, 0), [])
   const tempCamPos = useMemo(() => new THREE.Vector3(), [])
   const tempCamLook = useMemo(() => new THREE.Vector3(), [])
-  const loadingCamPos = useMemo(() => new THREE.Vector3(0, 3, 32), [])
-  const loadingShipPos = useMemo(() => new THREE.Vector3(0, 0, 12), [])
-  const introCamPos = useMemo(() => new THREE.Vector3(), [])
-  const introShipPos = useMemo(() => new THREE.Vector3(), [])
-  const mapCamPos = useMemo(() => new THREE.Vector3(0, 86, -108), [])
-  const hudTick = useRef(0)
-  const boostRef = useRef(false)
-  const [boost, setBoost] = useState(false)
-  const [banking, setBanking] = useState(0)
 
   const sections = useMemo(
     () =>
@@ -465,49 +398,45 @@ function SceneController({
     camera.updateProjectionMatrix()
   }, [camera])
 
+  useFrame(() => {
+    if (!ship.current) return
+  })
+
   useFrame((state, delta) => {
     if (!ship.current) return
 
-    const t = state.clock.elapsedTime
-
     if (phase === 'loading') {
-      camera.position.lerp(loadingCamPos, 0.04)
+      camera.position.lerp(new THREE.Vector3(0, 3, 32), 0.04)
       camera.lookAt(0, 0, -10)
-      ship.current.position.lerp(loadingShipPos, 0.08)
+      ship.current.position.lerp(new THREE.Vector3(0, -1, 12), 0.08)
       return
     }
 
     if (phase === 'intro') {
-      introCamPos.set(0, 12, 36 - reveal * 22)
-      introShipPos.set(0, -1.2, 13 - reveal * 4)
-
-      camera.position.lerp(introCamPos, 0.035)
+      const introTargetPos = new THREE.Vector3(0, 12, 36 - reveal * 22)
+      camera.position.lerp(introTargetPos, 0.035)
       camera.lookAt(0, 0, -80)
-      ship.current.position.lerp(introShipPos, 0.05)
-      ship.current.rotation.z = lerp(ship.current.rotation.z, 0, 0.08)
+      ship.current.position.lerp(new THREE.Vector3(0, -1.6, 12 - reveal * 4), 0.05)
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.04, 0.08)
+      ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.08)
       return
     }
 
     if (mode === 'map') {
-      hudTick.current += delta
-      ship.current.rotation.z = lerp(ship.current.rotation.z, 0, 0.06)
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.08, 0.06)
-      ship.current.rotation.y = lerp(ship.current.rotation.y, -0.08, 0.06)
+      ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.06)
 
-      camera.position.lerp(mapCamPos, 0.06)
+      const mapPos = new THREE.Vector3(0, 86, -108)
+      camera.position.lerp(mapPos, 0.06)
       camera.lookAt(0, 0, -108)
 
-      if (hudTick.current >= 0.12) {
-        hudTick.current = 0
-        setHud((prev) => ({
-          ...prev,
-          sector: activeSection ? activeSection.title : 'MAP',
-          sectorHint: activeSection
-            ? activeSection.body
-            : 'Map mode enabled. Press M to return to flight.',
-        }))
-      }
+      setHud((prev) => ({
+        ...prev,
+        sector: activeSection ? activeSection.title : 'MAP',
+        sectorHint: activeSection
+          ? activeSection.body
+          : 'Map mode enabled. Press M to return to flight.',
+      }))
       return
     }
 
@@ -519,48 +448,34 @@ function SceneController({
     const down = keys.ControlLeft || keys.ControlRight
     const boostNow = keys.ShiftLeft || keys.ShiftRight
 
-    const isBoosting = Boolean(boostNow)
-    if (boostRef.current !== isBoosting) {
-      boostRef.current = isBoosting
-      setBoost(isBoosting)
-    }
-
-    const yawSpeed = 1.65
-    const pitchSpeed = 1.05
-    const rollTarget = left ? 0.65 : right ? -0.65 : 0
+    const yawSpeed = 1.2
+    const pitchSpeed = 0.8
 
     if (left) ship.current.rotation.y += yawSpeed * delta
     if (right) ship.current.rotation.y -= yawSpeed * delta
-    if (up) ship.current.rotation.x = clamp(ship.current.rotation.x + pitchSpeed * delta, -0.8, 0.8)
-    if (down) ship.current.rotation.x = clamp(ship.current.rotation.x - pitchSpeed * delta, -0.8, 0.8)
+    if (up) ship.current.rotation.x = clamp(ship.current.rotation.x + pitchSpeed * delta, -0.55, 0.55)
+    if (down) ship.current.rotation.x = clamp(ship.current.rotation.x - pitchSpeed * delta, -0.55, 0.55)
 
-    ship.current.rotation.z = lerp(ship.current.rotation.z, rollTarget, 3.5 * delta)
-    setBanking((prev) => {
-      const next = lerp(prev, rollTarget, 4 * delta)
-      return Math.abs(next - prev) < 0.001 ? prev : next
-    })
+    tempForward.set(0, 0, 1).applyQuaternion(ship.current.quaternion).normalize()
 
-    tempForward.set(0, 0, -1).applyQuaternion(ship.current.quaternion).normalize()
-
-    const thrust = boostNow ? 22 : 12
+    const thrust = boostNow ? 19 : 10
     if (accelerating) velocity.current.addScaledVector(tempForward, thrust * delta)
-    if (braking) velocity.current.addScaledVector(tempForward, -10 * delta)
+    if (braking) velocity.current.addScaledVector(tempForward, -8 * delta)
 
-    velocity.current.multiplyScalar(Math.pow(0.986, delta * 60))
-    velocity.current.clampLength(4, boostNow ? 34 : 22)
+    velocity.current.multiplyScalar(Math.pow(0.988, delta * 60))
+    velocity.current.clampLength(2, boostNow ? 24 : 15)
 
     ship.current.position.addScaledVector(velocity.current, delta)
-    ship.current.position.x = clamp(ship.current.position.x, -30, 30)
+    ship.current.position.x = clamp(ship.current.position.x, -32, 32)
     ship.current.position.y = clamp(ship.current.position.y, -18, 18)
 
     tempCamPos
       .copy(ship.current.position)
-      .add(tempForward.clone().multiplyScalar(-7.2))
-      .add(tempUp.clone().multiplyScalar(2.2))
+      .add(tempForward.clone().multiplyScalar(-12))
+      .add(tempUp.clone().multiplyScalar(4.2))
 
     camera.position.lerp(tempCamPos, 1 - Math.pow(0.0025, delta))
-
-    tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(14))
+    tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(16))
     camera.lookAt(tempCamLook)
 
     let nearestSection = null
@@ -574,55 +489,47 @@ function SceneController({
       }
     }
 
-    const currentSection = nearestDistance < 13 ? nearestSection : null
+    const currentSection = nearestDistance < 16 ? nearestSection : null
 
     if (currentSection?.id !== activeSection?.id || (!currentSection && activeSection)) {
       setActiveSection(currentSection)
     }
 
-    hudTick.current += delta
-    if (hudTick.current >= 0.1) {
-      hudTick.current = 0
-      setHud({
-        speed: velocity.current.length().toFixed(1),
-        boost: isBoosting,
-        position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
-        sector: currentSection ? currentSection.title : 'TRANSIT',
-        sectorHint: currentSection
-          ? currentSection.body
-          : 'Navigate toward a celestial body to open a portfolio sector.',
-      })
-    }
+    setHud({
+      speed: velocity.current.length().toFixed(1),
+      boost: Boolean(boostNow),
+      position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
+      sector: currentSection ? currentSection.title : 'TRANSIT',
+      sectorHint: currentSection
+        ? currentSection.body
+        : 'Navigate toward a celestial body to open a portfolio sector.',
+    })
   })
 
   return (
     <group>
-      <group ref={ship} position={[0, 0, 12]}>
-        <ShipModel boost={boost} banking={banking} visible={phase !== 'loading'} />
+      <group ref={ship} position={[0, -1, 12]} rotation={[0.08, Math.PI, 0]}>
+        <Faifnir scale={0.72} visible={phase !== 'loading'} />
       </group>
 
       <StarLane />
       <NebulaRings />
-
       <SectionMarkers activeSection={activeSection} reveal={reveal} />
 
-      {mode === 'map' && (
-        <>
-          {SECTION_DEFS.map((item) => (
-            <Line
-              key={item.id}
-              points={[
-                [0, 0, -108],
-                item.pos,
-              ]}
-              color={activeSection?.id === item.id ? '#dce9ff' : '#6f8dcd'}
-              lineWidth={1}
-              transparent
-              opacity={0.4}
-            />
-          ))}
-        </>
-      )}
+      {mode === 'map' &&
+        SECTION_DEFS.map((item) => (
+          <Line
+            key={item.id}
+            points={[
+              [0, 0, -108],
+              item.pos,
+            ]}
+            color={activeSection?.id === item.id ? '#dce9ff' : '#6f8dcd'}
+            lineWidth={1}
+            transparent
+            opacity={0.4}
+          />
+        ))}
 
       <MapLabels sections={SECTION_DEFS} mode={mode} activeSection={activeSection} />
     </group>
@@ -751,7 +658,7 @@ function HUD({ hud, activeSection, mode, phase }) {
         <div className="tagline">Concept</div>
         <p className="body-copy">
           A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
-          Each module is represented by a different celestial body, and map mode can be toggled with M.
+          The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
         </p>
       </div>
 
@@ -770,8 +677,8 @@ export default function App() {
     sectorHint: 'Navigate toward a celestial body to open a portfolio sector.',
   })
 
-  const [phase, setPhase] = useState('loading') // loading | intro | play
-  const [mode, setMode] = useState('flight') // flight | map
+  const [phase, setPhase] = useState('loading')
+  const [mode, setMode] = useState('flight')
   const [reveal, setReveal] = useState(0)
 
   useEffect(() => {

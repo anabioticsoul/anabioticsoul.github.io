@@ -7,11 +7,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --panel: rgba(3, 8, 20, 0.55);
-  --panel-strong: rgba(3, 8, 20, 0.72);
   --border: rgba(255, 255, 255, 0.1);
   --text-soft: #aeb9d8;
-  --text-dim: #7f91bc;
-  --accent: #8ab5ff;
   --accent-2: #7be7ff;
 }
 
@@ -122,10 +119,6 @@ strong {
 .muted {
   color: var(--text-soft);
   font-size: 12px;
-}
-
-.soft {
-  color: var(--text-dim);
 }
 
 .top-left {
