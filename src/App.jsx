@@ -441,6 +441,13 @@ function SceneController({
   const tempUp = useMemo(() => new THREE.Vector3(0, 1, 0), [])
   const tempCamPos = useMemo(() => new THREE.Vector3(), [])
   const tempCamLook = useMemo(() => new THREE.Vector3(), [])
+  const loadingCamPos = useMemo(() => new THREE.Vector3(0, 3, 32), [])
+  const loadingShipPos = useMemo(() => new THREE.Vector3(0, 0, 12), [])
+  const introCamPos = useMemo(() => new THREE.Vector3(), [])
+  const introShipPos = useMemo(() => new THREE.Vector3(), [])
+  const mapCamPos = useMemo(() => new THREE.Vector3(0, 86, -108), [])
+  const hudTick = useRef(0)
+  const boostRef = useRef(false)
   const [boost, setBoost] = useState(false)
   const [banking, setBanking] = useState(0)
 
@@ -464,38 +471,43 @@ function SceneController({
     const t = state.clock.elapsedTime
 
     if (phase === 'loading') {
-      camera.position.lerp(new THREE.Vector3(0, 3, 32), 0.04)
+      camera.position.lerp(loadingCamPos, 0.04)
       camera.lookAt(0, 0, -10)
-      ship.current.position.lerp(new THREE.Vector3(0, 0, 12), 0.08)
+      ship.current.position.lerp(loadingShipPos, 0.08)
       return
     }
 
     if (phase === 'intro') {
-      const introTargetPos = new THREE.Vector3(0, 12, 36 - reveal * 22)
-      camera.position.lerp(introTargetPos, 0.035)
+      introCamPos.set(0, 12, 36 - reveal * 22)
+      introShipPos.set(0, -1.2, 13 - reveal * 4)
+
+      camera.position.lerp(introCamPos, 0.035)
       camera.lookAt(0, 0, -80)
-      ship.current.position.lerp(new THREE.Vector3(0, -1.2, 13 - reveal * 4), 0.05)
+      ship.current.position.lerp(introShipPos, 0.05)
       ship.current.rotation.z = lerp(ship.current.rotation.z, 0, 0.08)
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.04, 0.08)
       return
     }
 
     if (mode === 'map') {
+      hudTick.current += delta
       ship.current.rotation.z = lerp(ship.current.rotation.z, 0, 0.06)
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.08, 0.06)
       ship.current.rotation.y = lerp(ship.current.rotation.y, -0.08, 0.06)
 
-      const mapPos = new THREE.Vector3(0, 86, -108)
-      camera.position.lerp(mapPos, 0.06)
+      camera.position.lerp(mapCamPos, 0.06)
       camera.lookAt(0, 0, -108)
 
-      setHud((prev) => ({
-        ...prev,
-        sector: activeSection ? activeSection.title : 'MAP',
-        sectorHint: activeSection
-          ? activeSection.body
-          : 'Map mode enabled. Press M to return to flight.',
-      }))
+      if (hudTick.current >= 0.12) {
+        hudTick.current = 0
+        setHud((prev) => ({
+          ...prev,
+          sector: activeSection ? activeSection.title : 'MAP',
+          sectorHint: activeSection
+            ? activeSection.body
+            : 'Map mode enabled. Press M to return to flight.',
+        }))
+      }
       return
     }
 
@@ -507,7 +519,11 @@ function SceneController({
     const down = keys.ControlLeft || keys.ControlRight
     const boostNow = keys.ShiftLeft || keys.ShiftRight
 
-    setBoost(Boolean(boostNow))
+    const isBoosting = Boolean(boostNow)
+    if (boostRef.current !== isBoosting) {
+      boostRef.current = isBoosting
+      setBoost(isBoosting)
+    }
 
     const yawSpeed = 1.65
     const pitchSpeed = 1.05
@@ -519,7 +535,10 @@ function SceneController({
     if (down) ship.current.rotation.x = clamp(ship.current.rotation.x - pitchSpeed * delta, -0.8, 0.8)
 
     ship.current.rotation.z = lerp(ship.current.rotation.z, rollTarget, 3.5 * delta)
-    setBanking((prev) => lerp(prev, rollTarget, 4 * delta))
+    setBanking((prev) => {
+      const next = lerp(prev, rollTarget, 4 * delta)
+      return Math.abs(next - prev) < 0.001 ? prev : next
+    })
 
     tempForward.set(0, 0, -1).applyQuaternion(ship.current.quaternion).normalize()
 
@@ -561,15 +580,19 @@ function SceneController({
       setActiveSection(currentSection)
     }
 
-    setHud({
-      speed: velocity.current.length().toFixed(1),
-      boost: Boolean(boostNow),
-      position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
-      sector: currentSection ? currentSection.title : 'TRANSIT',
-      sectorHint: currentSection
-        ? currentSection.body
-        : 'Navigate toward a celestial body to open a portfolio sector.',
-    })
+    hudTick.current += delta
+    if (hudTick.current >= 0.1) {
+      hudTick.current = 0
+      setHud({
+        speed: velocity.current.length().toFixed(1),
+        boost: isBoosting,
+        position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
+        sector: currentSection ? currentSection.title : 'TRANSIT',
+        sectorHint: currentSection
+          ? currentSection.body
+          : 'Navigate toward a celestial body to open a portfolio sector.',
+      })
+    }
   })
 
   return (
@@ -752,11 +775,18 @@ export default function App() {
   const [reveal, setReveal] = useState(0)
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('intro'), 1200)
-    const t2 = setTimeout(() => setPhase('play'), 5200)
+    const t1 = setTimeout(() => setPhase('intro'), 300)
+    const t2 = setTimeout(() => setPhase('play'), 1800)
+
+    const skipToPlay = () => setPhase('play')
+    window.addEventListener('pointerdown', skipToPlay)
+    window.addEventListener('keydown', skipToPlay)
+
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
+      window.removeEventListener('pointerdown', skipToPlay)
+      window.removeEventListener('keydown', skipToPlay)
     }
   }, [])
 
