@@ -339,26 +339,29 @@ function MapLabels({ sections, mode, activeSection }) {
     <group>
       {sections.map((section) => {
         const active = activeSection?.id === section.id
+
         return (
-          <group key={section.id} position={[section.pos[0], section.pos[1] + 7, section.pos[2]]}>
-            <Html center distanceFactor={12} style={{ pointerEvents: 'none' }}>
-              <div
-                style={{
-                  color: active ? '#fff' : '#cddcff',
-                  fontSize: '12px',
-                  letterSpacing: '0.28em',
-                  textTransform: 'uppercase',
-                  padding: '8px 12px',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '999px',
-                  background: 'rgba(5,10,22,0.68)',
-                  backdropFilter: 'blur(10px)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {section.title}
-              </div>
-            </Html>
+          <group
+            key={section.id}
+            position={[
+              section.pos[0],
+              section.pos[1] + 3.2,
+              section.pos[2],
+            ]}
+            // 关键：让文字躺到 XZ 平面，供俯视地图阅读
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <Text
+              fontSize={active ? 2.1 : 1.55}
+              maxWidth={18}
+              anchorX="center"
+              anchorY="middle"
+              color={active ? '#ffffff' : '#9fc3ff'}
+              outlineWidth={0.08}
+              outlineColor="rgba(10,14,30,0.92)"
+            >
+              {section.title}
+            </Text>
           </group>
         )
       })}
