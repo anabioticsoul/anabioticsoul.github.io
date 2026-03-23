@@ -30,9 +30,14 @@ function EnergyMaterial({ color = '#55d8ff', opacity = 0.65, boost = 0 }) {
 function ThrusterPlume({ side = 0, boost = 0, pulse = 0 }) {
   const plumeLength = 2.6 + boost * 6.5 + pulse * 0.6
   const plumeWidth = 0.3 + boost * 0.28
+
   return (
-    <group position={[side * 0.9, -0.1, 3.7 + plumeLength * 0.45]}>
-      <mesh rotation={[Math.PI / 2, 0, 0]} scale={[plumeWidth, plumeWidth, plumeLength]}>
+    <group position={[side * 0.9, -0.1, 0]}>
+      <mesh
+        position={[0, 0, -plumeLength * 0.5]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[plumeWidth, plumeLength, plumeWidth]}
+      >
         <coneGeometry args={[1, 1, 10]} />
         <meshStandardMaterial
           color="#9ceaff"
@@ -43,7 +48,12 @@ function ThrusterPlume({ side = 0, boost = 0, pulse = 0 }) {
           depthWrite={false}
         />
       </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} scale={[plumeWidth * 0.58, plumeWidth * 0.58, plumeLength * 0.82]}>
+
+      <mesh
+        position={[0, 0, -plumeLength * 0.42]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[plumeWidth * 0.58, plumeLength * 0.82, plumeWidth * 0.58]}
+      >
         <coneGeometry args={[1, 1, 10]} />
         <meshStandardMaterial
           color="#fff4b2"
@@ -196,7 +206,7 @@ export default function Faifnir({ scale = 1, visible = true, boostLevel = 0 }) {
     if (root.current) {
       root.current.children.forEach((child) => {
         if (child.userData?.boostEmitter) {
-          child.scale.z = child.userData.baseScaleZ * (1 + boostLevel * 1.8 + pulse * 0.12)
+          child.scale.z = child.userData.baseScaleZ * (1 + boostLevel * 2.6 + pulse * 0.18)
         }
       })
     }
