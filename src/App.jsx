@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Sparkles, Stars, Text, Html, Line } from '@react-three/drei'
+import { Sparkles, Stars, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 import Faifnir from './Fafnir'
 
@@ -61,6 +61,10 @@ function lerp(a, b, t) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value))
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3)
 }
 
 function useKeys() {
@@ -152,6 +156,7 @@ function NebulaRings() {
 
 function PlanetMarker({ active, color }) {
   const ref = useRef()
+
   useFrame((_, delta) => {
     if (!ref.current) return
     ref.current.rotation.y += delta * 0.32
@@ -166,7 +171,12 @@ function PlanetMarker({ active, color }) {
     <group ref={ref}>
       <mesh>
         <sphereGeometry args={[2.1, 48, 48]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={active ? 0.65 : 0.28} roughness={0.9} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={active ? 0.65 : 0.28}
+          roughness={0.9}
+        />
       </mesh>
       <mesh scale={1.08}>
         <sphereGeometry args={[2.1, 48, 48]} />
@@ -178,6 +188,7 @@ function PlanetMarker({ active, color }) {
 
 function RingedPlanetMarker({ active, color }) {
   const ref = useRef()
+
   useFrame((_, delta) => {
     if (!ref.current) return
     ref.current.rotation.y += delta * 0.28
@@ -191,7 +202,12 @@ function RingedPlanetMarker({ active, color }) {
     <group ref={ref}>
       <mesh>
         <sphereGeometry args={[2.25, 48, 48]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={active ? 0.72 : 0.32} roughness={0.82} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={active ? 0.72 : 0.32}
+          roughness={0.82}
+        />
       </mesh>
       <mesh rotation={[Math.PI / 2.65, 0.15, 0.1]}>
         <torusGeometry args={[3.45, 0.28, 16, 100]} />
@@ -232,11 +248,19 @@ function BinaryMarker({ active, color }) {
     <group ref={group}>
       <mesh ref={a}>
         <sphereGeometry args={[1.35, 32, 32]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={active ? 0.92 : 0.5} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={active ? 0.92 : 0.5}
+        />
       </mesh>
       <mesh ref={b}>
         <sphereGeometry args={[1.0, 32, 32]} />
-        <meshStandardMaterial color="#d5f2ff" emissive="#d5f2ff" emissiveIntensity={active ? 0.95 : 0.45} />
+        <meshStandardMaterial
+          color="#d5f2ff"
+          emissive="#d5f2ff"
+          emissiveIntensity={active ? 0.95 : 0.45}
+        />
       </mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[2.55, 0.05, 8, 100]} />
@@ -248,6 +272,7 @@ function BinaryMarker({ active, color }) {
 
 function StationMarker({ active, color }) {
   const ref = useRef()
+
   useFrame((_, delta) => {
     if (!ref.current) return
     ref.current.rotation.y += delta * 0.4
@@ -262,7 +287,11 @@ function StationMarker({ active, color }) {
     <group ref={ref}>
       <mesh>
         <octahedronGeometry args={[1.35, 0]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={active ? 0.8 : 0.35} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={active ? 0.8 : 0.35}
+        />
       </mesh>
       <mesh rotation={[0, 0, Math.PI / 4]}>
         <boxGeometry args={[4.8, 0.12, 0.12]} />
@@ -295,8 +324,11 @@ function CelestialMarker({ item, active }) {
   }
 }
 
-function SectionMarkers({ activeSection, reveal }) {
+function SectionMarkers({ activeSection, reveal, mode }) {
+  if (mode === 'map') return null
+
   const revealScale = Math.max(0.0001, reveal)
+
   return (
     <group scale={[revealScale, revealScale, revealScale]}>
       {SECTION_DEFS.map((item) => {
@@ -333,6 +365,18 @@ function SectionMarkers({ activeSection, reveal }) {
 }
 
 function MapLabels({ sections, mode, activeSection }) {
+  const { camera } = useThree()
+  const refs = useRef({})
+
+  useFrame(() => {
+    if (mode !== 'map') return
+    for (const section of sections) {
+      const ref = refs.current[section.id]
+      if (!ref) continue
+      ref.quaternion.copy(camera.quaternion)
+    }
+  })
+
   if (mode !== 'map') return null
 
   return (
@@ -343,24 +387,23 @@ function MapLabels({ sections, mode, activeSection }) {
         return (
           <group
             key={section.id}
-            position={[
-              section.pos[0],
-              section.pos[1] + 3.2,
-              section.pos[2],
-            ]}
-            // 关键：让文字躺到 XZ 平面，供俯视地图阅读
-            rotation={[-Math.PI / 2, 0, 0]}
+            ref={(node) => {
+              refs.current[section.id] = node
+            }}
+            position={[section.pos[0], section.pos[1] + 7.2, section.pos[2]]}
           >
             <Text
-              fontSize={active ? 2.1 : 1.55}
-              maxWidth={18}
+              fontSize={active ? 2.5 : 1.95}
+              maxWidth={22}
               anchorX="center"
               anchorY="middle"
-              color={active ? '#ffffff' : '#9fc3ff'}
-              outlineWidth={0.08}
-              outlineColor="rgba(10,14,30,0.92)"
+              color={active ? '#ffffff' : '#c7dbff'}
+              outlineWidth={0.1}
+              outlineColor="#07101f"
+              renderOrder={30}
             >
               {section.title}
+              <meshBasicMaterial depthTest={false} depthWrite={false} toneMapped={false} />
             </Text>
           </group>
         )
@@ -375,7 +418,9 @@ function SceneController({
   setActiveSection,
   phase,
   mode,
+  setMode,
   reveal,
+  resetTick,
 }) {
   const ship = useRef()
   const keys = useKeys()
@@ -386,6 +431,9 @@ function SceneController({
   const tempUp = useMemo(() => new THREE.Vector3(0, 1, 0), [])
   const tempCamPos = useMemo(() => new THREE.Vector3(), [])
   const tempCamLook = useMemo(() => new THREE.Vector3(), [])
+  const tempLookA = useMemo(() => new THREE.Vector3(), [])
+  const tempLookB = useMemo(() => new THREE.Vector3(), [])
+  const tempLookMix = useMemo(() => new THREE.Vector3(), [])
 
   const sections = useMemo(
     () =>
@@ -396,14 +444,42 @@ function SceneController({
     []
   )
 
+  const startShipPos = useMemo(() => new THREE.Vector3(0, -1, 12), [])
+  const startCamPos = useMemo(() => new THREE.Vector3(0, 3, 32), [])
+
+  const resetState = useRef({
+    active: false,
+    t: 0,
+    duration: 1.25,
+    fromShipPos: new THREE.Vector3(),
+    fromShipQuat: new THREE.Quaternion(),
+    fromCamPos: new THREE.Vector3(),
+    fromLookAt: new THREE.Vector3(),
+  })
+
   useEffect(() => {
     camera.fov = 52
     camera.updateProjectionMatrix()
   }, [camera])
 
-  useFrame(() => {
+  useEffect(() => {
     if (!ship.current) return
-  })
+    if (phase !== 'play') return
+
+    resetState.current.active = true
+    resetState.current.t = 0
+    resetState.current.duration = 1.25
+    resetState.current.fromShipPos.copy(ship.current.position)
+    resetState.current.fromShipQuat.copy(ship.current.quaternion)
+    resetState.current.fromCamPos.copy(camera.position)
+
+    tempForward.set(0, 0, 1).applyQuaternion(ship.current.quaternion).normalize()
+    resetState.current.fromLookAt.copy(ship.current.position).add(tempForward.clone().multiplyScalar(16))
+
+    velocity.current.set(0, 0, 0)
+    setActiveSection(null)
+    setMode('flight')
+  }, [resetTick, camera, phase, setActiveSection, setMode, tempForward])
 
   useFrame((state, delta) => {
     if (!ship.current) return
@@ -425,6 +501,42 @@ function SceneController({
       return
     }
 
+    if (resetState.current.active) {
+      resetState.current.t += delta / resetState.current.duration
+      const t = Math.min(resetState.current.t, 1)
+      const k = easeOutCubic(t)
+
+      ship.current.position.lerpVectors(resetState.current.fromShipPos, startShipPos, k)
+
+      const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.08, Math.PI, 0))
+      ship.current.quaternion.slerpQuaternions(resetState.current.fromShipQuat, targetQuat, k)
+
+      camera.position.lerpVectors(resetState.current.fromCamPos, startCamPos, k)
+
+      tempLookA.copy(resetState.current.fromLookAt)
+      tempLookB.set(0, 0, -10)
+      tempLookMix.lerpVectors(tempLookA, tempLookB, k)
+      camera.lookAt(tempLookMix)
+
+      setHud({
+        speed: '0.0',
+        boost: false,
+        position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
+        sector: 'RESET',
+        sectorHint: 'Returning to the starting corridor. Press W to continue flight.',
+      })
+
+      if (t >= 1) {
+        resetState.current.active = false
+        ship.current.position.copy(startShipPos)
+        ship.current.rotation.set(0.08, Math.PI, 0)
+        camera.position.copy(startCamPos)
+        camera.lookAt(0, 0, -10)
+        velocity.current.set(0, 0, -8)
+      }
+      return
+    }
+
     if (mode === 'map') {
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.08, 0.06)
       ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.06)
@@ -438,7 +550,7 @@ function SceneController({
         sector: activeSection ? activeSection.title : 'MAP',
         sectorHint: activeSection
           ? activeSection.body
-          : 'Map mode enabled. Press M to return to flight.',
+          : 'Map mode enabled. Press M to return to flight. Press R to reset ship position.',
       }))
       return
     }
@@ -517,7 +629,7 @@ function SceneController({
 
       <StarLane />
       <NebulaRings />
-      <SectionMarkers activeSection={activeSection} reveal={reveal} />
+      <SectionMarkers activeSection={activeSection} reveal={reveal} mode={mode} />
 
       {mode === 'map' &&
         SECTION_DEFS.map((item) => (
@@ -546,7 +658,8 @@ function SectorPanel({ activeSection, mode }) {
         <div className="tagline">Star Map</div>
         <div className="title-md">Sector Overview</div>
         <p className="body-copy">
-          Press <strong>M</strong> again to return to flight mode. You can use this mode to understand the structure of the site before navigating.
+          Press <strong>M</strong> again to return to flight mode. Press <strong>R</strong> to
+          reset the ship to the starting corridor.
         </p>
       </div>
     )
@@ -644,7 +757,7 @@ function HUD({ hud, activeSection, mode, phase }) {
           <div>
             <div className="tagline">Controls</div>
             <div className="controls-text">
-              W / ↑ thrust · S / ↓ brake · A,D turn · Space / Ctrl pitch · Shift boost · M map
+              W / ↑ thrust · S / ↓ brake · A,D turn · Space / Ctrl pitch · Shift boost · M map · R reset
             </div>
           </div>
 
@@ -683,6 +796,7 @@ export default function App() {
   const [phase, setPhase] = useState('loading')
   const [mode, setMode] = useState('flight')
   const [reveal, setReveal] = useState(0)
+  const [resetTick, setResetTick] = useState(0)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('intro'), 300)
@@ -716,10 +830,18 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code === 'KeyM' && phase === 'play') {
+      if (phase !== 'play' || e.repeat) return
+
+      if (e.code === 'KeyM') {
         setMode((prev) => (prev === 'flight' ? 'map' : 'flight'))
       }
+
+      if (e.code === 'KeyR') {
+        setMode('flight')
+        setResetTick((v) => v + 1)
+      }
     }
+
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [phase])
@@ -735,7 +857,9 @@ export default function App() {
             setActiveSection={setActiveSection}
             phase={phase}
             mode={mode}
+            setMode={setMode}
             reveal={reveal}
+            resetTick={resetTick}
           />
         </Canvas>
       </div>
