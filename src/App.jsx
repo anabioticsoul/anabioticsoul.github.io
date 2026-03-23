@@ -101,7 +101,7 @@ function SpaceBackdrop() {
   )
 }
 
-function StarLane() {
+function StarLane({ speedFactor = 0, boostLevel = 0 }) {
   const points = useMemo(() => {
     const arr = []
     for (let i = 0; i < 120; i++) {
@@ -116,23 +116,29 @@ function StarLane() {
 
   return (
     <group>
-      {points.map((p, i) => (
-        <mesh key={i} position={p}>
-          <icosahedronGeometry args={[i % 9 === 0 ? 1.2 : 0.24, 0]} />
-          <meshStandardMaterial
-            color={i % 9 === 0 ? '#2d4f8f' : '#9dbfff'}
-            emissive={i % 9 === 0 ? '#305dc0' : '#7da9ff'}
-            emissiveIntensity={i % 9 === 0 ? 0.85 : 0.3}
-            roughness={0.8}
-            metalness={0.08}
-          />
-        </mesh>
-      ))}
+      {points.map((p, i) => {
+        const laneScale = 1 + boostLevel * 1.25
+        const opacity = 0.18 + boostLevel * 0.42 + speedFactor * 0.08
+        return (
+          <mesh key={i} position={p} scale={[1, 1, laneScale]}>
+            <icosahedronGeometry args={[i % 9 === 0 ? 1.2 : 0.24, 0]} />
+            <meshStandardMaterial
+              color={i % 9 === 0 ? '#2d4f8f' : '#9dbfff'}
+              emissive={i % 9 === 0 ? '#305dc0' : '#7da9ff'}
+              emissiveIntensity={i % 9 === 0 ? 0.85 + boostLevel * 0.65 : 0.3 + boostLevel * 0.45}
+              roughness={0.8}
+              metalness={0.08}
+              transparent
+              opacity={Math.min(0.95, opacity)}
+            />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
 
-function NebulaRings() {
+function NebulaRings({ boostLevel = 0 }) {
   const rings = useMemo(
     () => [
       { pos: [0, -10, -48], scale: 18, color: '#2445a8' },
@@ -146,8 +152,44 @@ function NebulaRings() {
     <group>
       {rings.map((ring, i) => (
         <mesh key={i} position={ring.pos} rotation={[-Math.PI / 2.8, 0, 0]}>
-          <torusGeometry args={[ring.scale, 0.28, 16, 120]} />
-          <meshBasicMaterial color={ring.color} transparent opacity={0.33} />
+          <torusGeometry args={[ring.scale, 0.28 + boostLevel * 0.05, 16, 120]} />
+          <meshBasicMaterial color={ring.color} transparent opacity={0.33 + boostLevel * 0.08} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+function WarpLines({ active = false, amount = 0 }) {
+  const ref = useRef()
+  const data = useMemo(() => {
+    return Array.from({ length: 34 }, () => ({
+      x: (Math.random() - 0.5) * 10,
+      y: (Math.random() - 0.5) * 6,
+      z: -6 - Math.random() * 18,
+      len: 1.6 + Math.random() * 4.6,
+    }))
+  }, [])
+
+  useFrame((state, delta) => {
+    if (!ref.current) return
+    ref.current.visible = active || amount > 0.02
+    ref.current.children.forEach((child, index) => {
+      child.position.z += delta * (18 + amount * 95)
+      if (child.position.z > 3) {
+        child.position.z = -24 - Math.random() * 12
+      }
+      child.material.opacity = 0.06 + amount * (0.28 + (index % 6) * 0.02)
+      child.scale.z = data[index].len * (1 + amount * 2.4)
+    })
+  })
+
+  return (
+    <group ref={ref} visible={false}>
+      {data.map((item, index) => (
+        <mesh key={index} position={[item.x, item.y, item.z]}>
+          <boxGeometry args={[0.03, 0.03, item.len]} />
+          <meshBasicMaterial color="#b6ddff" transparent opacity={0.08} />
         </mesh>
       ))}
     </group>
@@ -421,6 +463,8 @@ function SceneController({
   setMode,
   reveal,
   resetTick,
+  boostLevel,
+  setBoostLevel,
 }) {
   const ship = useRef()
   const keys = useKeys()
@@ -477,9 +521,10 @@ function SceneController({
     resetState.current.fromLookAt.copy(ship.current.position).add(tempForward.clone().multiplyScalar(16))
 
     velocity.current.set(0, 0, 0)
+    setBoostLevel(0)
     setActiveSection(null)
     setMode('flight')
-  }, [resetTick, camera, phase, setActiveSection, setMode, tempForward])
+  }, [resetTick, camera, phase, setActiveSection, setBoostLevel, setMode, tempForward])
 
   useFrame((state, delta) => {
     if (!ship.current) return
@@ -488,6 +533,7 @@ function SceneController({
       camera.position.lerp(new THREE.Vector3(0, 3, 32), 0.04)
       camera.lookAt(0, 0, -10)
       ship.current.position.lerp(new THREE.Vector3(0, -1, 12), 0.08)
+      setBoostLevel((prev) => lerp(prev, 0, 0.15))
       return
     }
 
@@ -498,6 +544,7 @@ function SceneController({
       ship.current.position.lerp(new THREE.Vector3(0, -1.6, 12 - reveal * 4), 0.05)
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.04, 0.08)
       ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.08)
+      setBoostLevel((prev) => lerp(prev, 0, 0.15))
       return
     }
 
@@ -517,10 +564,12 @@ function SceneController({
       tempLookB.set(0, 0, -10)
       tempLookMix.lerpVectors(tempLookA, tempLookB, k)
       camera.lookAt(tempLookMix)
+      setBoostLevel((prev) => lerp(prev, 0, 0.18))
 
       setHud({
         speed: '0.0',
         boost: false,
+        boostLevel: 0,
         position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
         sector: 'RESET',
         sectorHint: 'Returning to the starting corridor. Press W to continue flight.',
@@ -544,9 +593,12 @@ function SceneController({
       const mapPos = new THREE.Vector3(0, 86, -108)
       camera.position.lerp(mapPos, 0.06)
       camera.lookAt(0, 0, -108)
+      setBoostLevel((prev) => lerp(prev, 0, 0.12))
 
       setHud((prev) => ({
         ...prev,
+        boost: false,
+        boostLevel: 0,
         sector: activeSection ? activeSection.title : 'MAP',
         sectorHint: activeSection
           ? activeSection.body
@@ -562,35 +614,44 @@ function SceneController({
     const up = keys.Space
     const down = keys.ControlLeft || keys.ControlRight
     const boostNow = keys.ShiftLeft || keys.ShiftRight
+    const boosting = Boolean(boostNow && accelerating)
 
-    const yawSpeed = 1.2
-    const pitchSpeed = 0.8
+    const yawSpeed = boostNow ? 1.45 : 1.2
+    const pitchSpeed = boostNow ? 0.95 : 0.8
 
     if (left) ship.current.rotation.y += yawSpeed * delta
     if (right) ship.current.rotation.y -= yawSpeed * delta
     if (up) ship.current.rotation.x = clamp(ship.current.rotation.x + pitchSpeed * delta, -0.55, 0.55)
     if (down) ship.current.rotation.x = clamp(ship.current.rotation.x - pitchSpeed * delta, -0.55, 0.55)
 
+    const targetBoostLevel = boostNow ? (accelerating ? 1 : 0.55) : 0
+    setBoostLevel((prev) => lerp(prev, targetBoostLevel, boostNow ? 0.14 : 0.1))
+
     tempForward.set(0, 0, 1).applyQuaternion(ship.current.quaternion).normalize()
 
-    const thrust = boostNow ? 19 : 10
-    if (accelerating) velocity.current.addScaledVector(tempForward, thrust * delta)
-    if (braking) velocity.current.addScaledVector(tempForward, -8 * delta)
+    const thrust = boostNow ? 23 : 10
+    const brakeForce = boostNow ? 10.5 : 8
 
-    velocity.current.multiplyScalar(Math.pow(0.988, delta * 60))
-    velocity.current.clampLength(2, boostNow ? 24 : 15)
+    if (accelerating) velocity.current.addScaledVector(tempForward, thrust * delta)
+    if (braking) velocity.current.addScaledVector(tempForward, -brakeForce * delta)
+
+    velocity.current.multiplyScalar(Math.pow(boostNow ? 0.991 : 0.988, delta * 60))
+    velocity.current.clampLength(2, boostNow ? 31 : 15)
 
     ship.current.position.addScaledVector(velocity.current, delta)
     ship.current.position.x = clamp(ship.current.position.x, -32, 32)
     ship.current.position.y = clamp(ship.current.position.y, -18, 18)
 
+    const cameraDistance = boostNow ? -14.5 : -12
+    const cameraHeight = boostNow ? 4.9 : 4.2
+
     tempCamPos
       .copy(ship.current.position)
-      .add(tempForward.clone().multiplyScalar(-12))
-      .add(tempUp.clone().multiplyScalar(4.2))
+      .add(tempForward.clone().multiplyScalar(cameraDistance))
+      .add(tempUp.clone().multiplyScalar(cameraHeight))
 
-    camera.position.lerp(tempCamPos, 1 - Math.pow(0.0025, delta))
-    tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(16))
+    camera.position.lerp(tempCamPos, 1 - Math.pow(boostNow ? 0.0016 : 0.0025, delta))
+    tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(boostNow ? 19 : 16))
     camera.lookAt(tempCamLook)
 
     let nearestSection = null
@@ -612,23 +673,27 @@ function SceneController({
 
     setHud({
       speed: velocity.current.length().toFixed(1),
-      boost: Boolean(boostNow),
+      boost: boosting,
+      boostLevel: targetBoostLevel,
       position: `${ship.current.position.x.toFixed(1)} / ${ship.current.position.y.toFixed(1)} / ${ship.current.position.z.toFixed(1)}`,
       sector: currentSection ? currentSection.title : 'TRANSIT',
       sectorHint: currentSection
         ? currentSection.body
-        : 'Navigate toward a celestial body to open a portfolio sector.',
+        : boosting
+          ? 'Boost engaged. Hold Shift + W to surge through the corridor.'
+          : 'Navigate toward a celestial body to open a portfolio sector.',
     })
   })
 
   return (
     <group>
       <group ref={ship} position={[0, -1, 12]} rotation={[0.08, Math.PI, 0]}>
-        <Faifnir scale={0.72} visible={phase !== 'loading'} />
+        <Faifnir scale={0.72} visible={phase !== 'loading'} boostLevel={boostLevel} />
+        <WarpLines active={phase === 'play' && mode === 'flight'} amount={boostLevel} />
       </group>
 
-      <StarLane />
-      <NebulaRings />
+      <StarLane speedFactor={Math.min(1, velocity.current.length() / 26)} boostLevel={boostLevel} />
+      <NebulaRings boostLevel={boostLevel} />
       <SectionMarkers activeSection={activeSection} reveal={reveal} mode={mode} />
 
       {mode === 'map' &&
@@ -724,10 +789,11 @@ function IntroOverlay({ phase, reveal }) {
   )
 }
 
-function HUD({ hud, activeSection, mode, phase }) {
+function HUD({ hud, activeSection, mode, phase, boostLevel }) {
   return (
-    <div className="overlay">
+    <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
+      <div className="speed-lines" style={{ opacity: Math.min(1, boostLevel) }} />
 
       <div className="panel panel-compact top-left">
         <div className="tagline">Orbital Flight</div>
@@ -763,7 +829,7 @@ function HUD({ hud, activeSection, mode, phase }) {
 
           <div className="grid-stats">
             <div className="label">Boost</div>
-            <div>{hud.boost ? 'Active' : 'Standby'}</div>
+            <div>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
             <div className="label">Position</div>
             <div>{hud.position}</div>
           </div>
@@ -778,7 +844,11 @@ function HUD({ hud, activeSection, mode, phase }) {
         </p>
       </div>
 
-      {phase === 'play' && <div className="crosshair" />}
+      {phase === 'play' && (
+        <div className={`crosshair ${boostLevel > 0.2 ? 'crosshair-boost' : ''}`}>
+          <div className="crosshair-ring" style={{ opacity: 0.18 + boostLevel * 0.52 }} />
+        </div>
+      )}
     </div>
   )
 }
@@ -788,6 +858,7 @@ export default function App() {
   const [hud, setHud] = useState({
     speed: '8.0',
     boost: false,
+    boostLevel: 0,
     position: '0.0 / 0.0 / 12.0',
     sector: 'TRANSIT',
     sectorHint: 'Navigate toward a celestial body to open a portfolio sector.',
@@ -797,6 +868,7 @@ export default function App() {
   const [mode, setMode] = useState('flight')
   const [reveal, setReveal] = useState(0)
   const [resetTick, setResetTick] = useState(0)
+  const [boostLevel, setBoostLevel] = useState(0)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('intro'), 300)
@@ -860,11 +932,13 @@ export default function App() {
             setMode={setMode}
             reveal={reveal}
             resetTick={resetTick}
+            boostLevel={boostLevel}
+            setBoostLevel={setBoostLevel}
           />
         </Canvas>
       </div>
 
-      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} />
+      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} />
       <IntroOverlay phase={phase} reveal={reveal} />
     </div>
   )
