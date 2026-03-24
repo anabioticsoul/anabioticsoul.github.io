@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles, Stars, Text, Line } from '@react-three/drei'
@@ -468,7 +469,7 @@ function SceneController({
 }) {
   const ship = useRef()
   const keys = useKeys()
-  const { camera } = useThree()
+  const { camera, gl } = useThree()
 
   const velocity = useRef(new THREE.Vector3(0, 0, -8))
   const tempForward = useMemo(() => new THREE.Vector3(), [])
@@ -478,6 +479,8 @@ function SceneController({
   const tempLookA = useMemo(() => new THREE.Vector3(), [])
   const tempLookB = useMemo(() => new THREE.Vector3(), [])
   const tempLookMix = useMemo(() => new THREE.Vector3(), [])
+  const freeOffset = useMemo(() => new THREE.Vector3(), [])
+  const freeRight = useMemo(() => new THREE.Vector3(), [])
 
   const sections = useMemo(
     () =>
@@ -501,10 +504,92 @@ function SceneController({
     fromLookAt: new THREE.Vector3(),
   })
 
+  const cameraControl = useRef({
+    mode: 'follow',
+    dragging: false,
+    pointerId: null,
+    lastX: 0,
+    lastY: 0,
+    yaw: 0,
+    pitch: 0.08,
+    distance: 12.7,
+    targetYaw: 0,
+    targetPitch: 0.08,
+    targetDistance: 12.7,
+  })
+
   useEffect(() => {
     camera.fov = 52
     camera.updateProjectionMatrix()
   }, [camera])
+
+  useEffect(() => {
+    const el = gl.domElement
+    if (!el) return
+
+    const onPointerDown = (e) => {
+      if (phase !== 'play' || mode !== 'flight' || resetState.current.active) return
+      cameraControl.current.dragging = true
+      cameraControl.current.pointerId = e.pointerId
+      cameraControl.current.lastX = e.clientX
+      cameraControl.current.lastY = e.clientY
+      cameraControl.current.mode = 'free'
+      if (el.setPointerCapture) {
+        try {
+          el.setPointerCapture(e.pointerId)
+        } catch {}
+      }
+    }
+
+    const onPointerMove = (e) => {
+      const ctrl = cameraControl.current
+      if (!ctrl.dragging) return
+      if (ctrl.pointerId !== null && e.pointerId !== ctrl.pointerId) return
+
+      const dx = e.clientX - ctrl.lastX
+      const dy = e.clientY - ctrl.lastY
+      ctrl.lastX = e.clientX
+      ctrl.lastY = e.clientY
+
+      ctrl.targetYaw -= dx * 0.005
+      ctrl.targetPitch = clamp(ctrl.targetPitch - dy * 0.0035, -0.45, 0.6)
+    }
+
+    const endDrag = (e) => {
+      const ctrl = cameraControl.current
+      if (!ctrl.dragging) return
+      if (e.pointerId !== undefined && ctrl.pointerId !== null && e.pointerId !== ctrl.pointerId) return
+      ctrl.dragging = false
+      if (e.pointerId !== undefined && el.releasePointerCapture) {
+        try {
+          el.releasePointerCapture(e.pointerId)
+        } catch {}
+      }
+      ctrl.pointerId = null
+    }
+
+    const onWheel = (e) => {
+      if (phase !== 'play' || mode !== 'flight' || resetState.current.active) return
+      e.preventDefault()
+      const ctrl = cameraControl.current
+      ctrl.mode = 'free'
+      ctrl.targetDistance = clamp(ctrl.targetDistance + e.deltaY * 0.008, 6, 28)
+    }
+
+    el.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', endDrag)
+    window.addEventListener('pointercancel', endDrag)
+    el.addEventListener('wheel', onWheel, { passive: false })
+
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', endDrag)
+      window.removeEventListener('pointercancel', endDrag)
+      el.removeEventListener('wheel', onWheel)
+    }
+  }, [gl, mode, phase])
 
   useEffect(() => {
     if (!ship.current) return
@@ -524,6 +609,16 @@ function SceneController({
     setBoostLevel(0)
     setActiveSection(null)
     setMode('flight')
+
+    cameraControl.current.mode = 'follow'
+    cameraControl.current.dragging = false
+    cameraControl.current.pointerId = null
+    cameraControl.current.yaw = 0
+    cameraControl.current.pitch = 0.08
+    cameraControl.current.distance = 12.7
+    cameraControl.current.targetYaw = 0
+    cameraControl.current.targetPitch = 0.08
+    cameraControl.current.targetDistance = 12.7
   }, [resetTick, camera, phase, setActiveSection, setBoostLevel, setMode, tempForward])
 
   useFrame((state, delta) => {
@@ -545,6 +640,7 @@ function SceneController({
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.04, 0.08)
       ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.08)
       setBoostLevel((prev) => lerp(prev, 0, 0.15))
+      cameraControl.current.mode = 'follow'
       return
     }
 
@@ -594,6 +690,7 @@ function SceneController({
       camera.position.lerp(mapPos, 0.06)
       camera.lookAt(0, 0, -108)
       setBoostLevel((prev) => lerp(prev, 0, 0.12))
+      cameraControl.current.mode = 'follow'
 
       setHud((prev) => ({
         ...prev,
@@ -615,6 +712,15 @@ function SceneController({
     const down = keys.ControlLeft || keys.ControlRight
     const boostNow = keys.ShiftLeft || keys.ShiftRight
     const boosting = Boolean(boostNow && accelerating)
+
+    const hasManualFlightInput =
+      accelerating || braking || left || right || up || down || keys.ShiftLeft || keys.ShiftRight
+
+    if (hasManualFlightInput) {
+      cameraControl.current.mode = 'follow'
+      cameraControl.current.dragging = false
+      cameraControl.current.pointerId = null
+    }
 
     const yawSpeed = boostNow ? 1.45 : 1.2
     const pitchSpeed = boostNow ? 0.95 : 0.8
@@ -642,17 +748,41 @@ function SceneController({
     ship.current.position.x = clamp(ship.current.position.x, -32, 32)
     ship.current.position.y = clamp(ship.current.position.y, -18, 18)
 
+    const ctrl = cameraControl.current
+    ctrl.yaw = lerp(ctrl.yaw, ctrl.targetYaw, 0.14)
+    ctrl.pitch = lerp(ctrl.pitch, ctrl.targetPitch, 0.14)
+    ctrl.distance = lerp(ctrl.distance, ctrl.targetDistance, 0.16)
+
     const cameraDistance = boostNow ? -14.5 : -12
     const cameraHeight = boostNow ? 4.9 : 4.2
 
-    tempCamPos
-      .copy(ship.current.position)
-      .add(tempForward.clone().multiplyScalar(cameraDistance))
-      .add(tempUp.clone().multiplyScalar(cameraHeight))
+    if (ctrl.mode === 'free') {
+      freeRight.crossVectors(tempForward, tempUp).normalize()
 
-    camera.position.lerp(tempCamPos, 1 - Math.pow(boostNow ? 0.0016 : 0.0025, delta))
-    tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(boostNow ? 19 : 16))
-    camera.lookAt(tempCamLook)
+      freeOffset
+        .copy(tempForward)
+        .multiplyScalar(-Math.cos(ctrl.yaw) * ctrl.distance)
+        .addScaledVector(freeRight, Math.sin(ctrl.yaw) * ctrl.distance)
+        .addScaledVector(tempUp, cameraHeight + Math.sin(ctrl.pitch) * ctrl.distance)
+
+      tempCamPos.copy(ship.current.position).add(freeOffset)
+      camera.position.lerp(tempCamPos, 1 - Math.pow(0.0025, delta))
+      tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(14))
+      camera.lookAt(tempCamLook)
+    } else {
+      tempCamPos
+        .copy(ship.current.position)
+        .add(tempForward.clone().multiplyScalar(cameraDistance))
+        .add(tempUp.clone().multiplyScalar(cameraHeight))
+
+      camera.position.lerp(tempCamPos, 1 - Math.pow(boostNow ? 0.0016 : 0.0025, delta))
+      tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(boostNow ? 19 : 16))
+      camera.lookAt(tempCamLook)
+
+      ctrl.targetYaw = lerp(ctrl.targetYaw, 0, 0.18)
+      ctrl.targetPitch = lerp(ctrl.targetPitch, 0.08, 0.18)
+      ctrl.targetDistance = lerp(ctrl.targetDistance, boostNow ? 15.2 : 12.7, 0.18)
+    }
 
     let nearestSection = null
     let nearestDistance = Infinity
