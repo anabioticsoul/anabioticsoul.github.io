@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles, Stars, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
+import About from './About'
 import Faifnir from './Fafnir'
 import SpaceBackdrop from './SpaceBackdrop'
 import currentMarkerUrl from '../public/map-marker.svg'
@@ -93,7 +94,7 @@ function SpaceEnvironment() {
     <>
       <color attach="background" args={['#02040c']} />
       <fog attach="fog" args={['#02040c', 40, 260]} />
-      <ambientLight intensity={0.6} />
+      <ambientLight intensity={0.3} />
       <directionalLight position={[8, 10, 6]} intensity={1.1} color="#9cc8ff" />
       <pointLight position={[-24, 10, -20]} intensity={20} distance={120} color="#356bff" />
       <pointLight position={[24, -8, 20]} intensity={12} distance={100} color="#7e53ff" />
@@ -354,6 +355,10 @@ function StationMarker({ active, color }) {
 }
 
 function CelestialMarker({ item, active }) {
+  if (item.id === 'about') {
+    return <About active={active} />
+  }
+
   switch (item.type) {
     case 'planet':
       return <PlanetMarker active={active} color={item.color} />

@@ -45,9 +45,9 @@ function NebulaSkybox() {
       // 压低天空盒亮度：参与 tone mapping，并降低基础反照率与自发光强度
       mat.toneMapped = true
       if (mat.color) mat.color.multiplyScalar(0.58)
-      if (mat.emissive) mat.emissive.multiplyScalar(0.2)
+      if (mat.emissive) mat.emissive.multiplyScalar(0.5)
       if ('emissiveIntensity' in mat) {
-        mat.emissiveIntensity = Math.min(0.18, mat.emissiveIntensity ?? 1)
+        mat.emissiveIntensity = Math.min(0.1, mat.emissiveIntensity ?? 1)
       }
 
       // 不要统一覆盖 transparent / opacity / emissive
