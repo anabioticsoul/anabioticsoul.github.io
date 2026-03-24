@@ -3,6 +3,11 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import Nebula from './Nebula'
+import HaloRing from './HaloRing'
+
+const HALO_RING_POSITION = [50, -6, -78]
+const HALO_RING_SCALE = 150
+const HALO_RING_ROTATION = [-Math.PI / 2.7, 0, 0]
 
 function cloneScene(scene) {
   const s = scene.clone(true)
@@ -85,7 +90,12 @@ function NebulaSkybox() {
 }
 
 function DeepSpaceObject() {
-  return <Nebula />
+  return (
+    <>
+      <Nebula />
+      <HaloRing position={HALO_RING_POSITION} scale={HALO_RING_SCALE} rotation={HALO_RING_ROTATION} />
+    </>
+  )
 }
 
 export default function SpaceBackdrop(props) {

@@ -1010,7 +1010,8 @@ function SceneController({
       </group>
 
       <StarLane speedFactor={Math.min(1, velocity.current.length() / 26)} boostLevel={boostLevel} />
-      <NebulaRings boostLevel={boostLevel} />
+      {/* 环状物 */}
+      {/* <NebulaRings boostLevel={boostLevel} /> */}
       <SectionMarkers activeSection={activeSection} reveal={reveal} mode={mode} />
 
       {mode === 'map' &&
