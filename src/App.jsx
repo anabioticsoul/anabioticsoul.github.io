@@ -19,7 +19,7 @@ const SECTION_DEFS = [
     pos: [-18, 5, -55],
     eyebrow: 'Identity',
     body:
-      'I work on configuration security and software security, with a focus on understanding how real-world software misconfigurations arise, how they can be diagnosed, and how configuration-related risks can be reduced in practice. My research combines empirical analysis, dataset construction, and tooling for configuration troubleshooting and security-oriented software systems.',
+      'I work on configuration security and software security, with a focus on understanding how real-world software misconfigurations arise, how they can be diagnosed, and how configuration-related risks can be reduced in practice.',
     cta: [
       { label: 'GitHub', href: 'https://github.com/anabioticsoul' },
     ],
@@ -34,7 +34,7 @@ const SECTION_DEFS = [
     pos: [18, -2, -92],
     eyebrow: 'Selected Works',
     body:
-      'Repositories:\n• misconfiguration_datasets\n• BJTU-thesis-template\n• CRSExtractor',
+      '',
     cta: [
       { label: 'misconfiguration_datasets', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
       { label: 'BJTU-thesis-template', href: 'https://github.com/anabioticsoul/BJTU-thesis-template' },
