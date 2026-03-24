@@ -1162,8 +1162,8 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
       <div className="speed-lines" style={{ opacity: Math.min(1, boostLevel) }} />
 
       <div className="panel panel-compact top-left">
-        <div className="tagline">Orbital Flight</div>
-        <div className="title-sm">STARLINE-01</div>
+        <div className="tagline">DRYTRON SATELLAR</div>
+        <div className="title-sm">ELUNERAS</div>
       </div>
 
       <ControlsPanel show={showControls && !isShipMoving} />
@@ -1223,8 +1223,7 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
         <div className="panel panel-main bottom-left">
           <div className="tagline">Concept</div>
           <p className="body-copy">
-            A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
-            The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
+            Draconis was not built merely to cross space, but to remember it.
           </p>
         </div>
       )}
