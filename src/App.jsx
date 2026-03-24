@@ -113,6 +113,45 @@ function useKeys() {
   return keys
 }
 
+
+function useViewportInfo() {
+  const getViewport = () => {
+    if (typeof window === 'undefined') {
+      return { width: 1280, height: 720 }
+    }
+    return {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
+  }
+
+  const [viewport, setViewport] = useState(getViewport)
+
+  useEffect(() => {
+    const onResize = () => setViewport(getViewport())
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
+  }, [])
+
+  const width = viewport.width
+  const height = viewport.height
+
+  return {
+    width,
+    height,
+    isMobile: width <= 900 || height <= 680,
+    isCompact: width <= 640,
+    isShort: height <= 740,
+    isTouch:
+      typeof window !== 'undefined' &&
+      (('ontouchstart' in window) || navigator.maxTouchPoints > 0),
+  }
+}
+
 function SpaceEnvironment() {
   return (
     <>
@@ -401,38 +440,44 @@ function CelestialMarker({ item, active }) {
   }
 }
 
-function BootReadyBridge({ onReady }) {
+function BootReadyBridge({ onReady, onProgress }) {
   const { active, progress } = useProgress()
   const doneRef = useRef(false)
+  const sentReadyRef = useRef(false)
+  const visualProgress = useRef(0)
 
   useEffect(() => {
-    if (doneRef.current) return
-    if (active || progress < 100) return
-
-    let cancelled = false
     let raf = 0
-    let frames = 0
 
     const tick = () => {
-      if (cancelled) return
-      frames += 1
+      const loaderProgress = clamp(progress, 0, 100)
+      const readinessProgress = doneRef.current ? 100 : loaderProgress * 0.9
+      visualProgress.current = lerp(visualProgress.current, readinessProgress, doneRef.current ? 0.18 : 0.12)
 
-      if (frames >= 8) {
+      if (loaderProgress >= 100 && !active && !doneRef.current && visualProgress.current >= 89.4) {
         doneRef.current = true
-        onReady()
-        return
       }
 
+      if (doneRef.current) {
+        visualProgress.current = lerp(visualProgress.current, 100, 0.16)
+        if (visualProgress.current >= 99.7) {
+          visualProgress.current = 100
+          onProgress?.(100)
+          if (!sentReadyRef.current) {
+            sentReadyRef.current = true
+            onReady?.()
+          }
+          return
+        }
+      }
+
+      onProgress?.(visualProgress.current)
       raf = requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
-
-    return () => {
-      cancelled = true
-      cancelAnimationFrame(raf)
-    }
-  }, [active, progress, onReady])
+    return () => cancelAnimationFrame(raf)
+  }, [active, progress, onProgress, onReady])
 
   return null
 }
@@ -684,6 +729,7 @@ function SceneController({
   boostLevel,
   setBoostLevel,
   onShipMoving,
+  mobileInput,
 }) {
   const ship = useRef()
   const keys = useKeys()
@@ -943,13 +989,13 @@ function SceneController({
       return
     }
 
-    const accelerating = keys.KeyW || keys.ArrowUp
-    const braking = keys.KeyS || keys.ArrowDown
-    const left = keys.KeyA || keys.ArrowLeft
-    const right = keys.KeyD || keys.ArrowRight
-    const up = keys.Space
-    const down = keys.ControlLeft || keys.ControlRight
-    const boostNow = keys.ShiftLeft || keys.ShiftRight
+    const accelerating = keys.KeyW || keys.ArrowUp || mobileInput.forward
+    const braking = keys.KeyS || keys.ArrowDown || mobileInput.back
+    const left = keys.KeyA || keys.ArrowLeft || mobileInput.left
+    const right = keys.KeyD || keys.ArrowRight || mobileInput.right
+    const up = keys.Space || mobileInput.up
+    const down = keys.ControlLeft || keys.ControlRight || mobileInput.down
+    const boostNow = keys.ShiftLeft || keys.ShiftRight || mobileInput.boost
     const boosting = Boolean(boostNow && accelerating)
 
     const hasManualFlightInput =
@@ -1184,6 +1230,7 @@ function SectorPanel({ activeSection, mode }) {
 }
 
 function IntroOverlay({ phase, reveal, loadingProgress }) {
+  const { isMobile, isCompact } = useViewportInfo()
   if (phase === 'play') return null
 
   const loading = phase === 'loading'
@@ -1211,10 +1258,10 @@ function IntroOverlay({ phase, reveal, loadingProgress }) {
           opacity: loading ? 1 : Math.max(0, 1 - reveal * 0.9),
         }}
       >
-        <div style={{ width: 'min(560px, calc(100vw - 56px))' }}>
+        <div style={{ width: isCompact ? 'calc(100vw - 28px)' : isMobile ? 'min(560px, calc(100vw - 36px))' : 'min(560px, calc(100vw - 56px))' }}>
           <div className="tagline">{loading ? 'Initializing' : 'Expanding Star Map'}</div>
-          <div className="title-lg">{loading ? 'Deep Space Systems' : `World Build ${introPercent}%`}</div>
-          <div className="body-copy" style={{ maxWidth: 560, marginInline: 'auto' }}>
+          <div className="title-lg" style={{ fontSize: isCompact ? '2.3rem' : isMobile ? '2.9rem' : undefined, lineHeight: isCompact ? 1.08 : undefined }}>{loading ? 'Deep Space Systems' : `World Build ${introPercent}%`}</div>
+          <div className="body-copy" style={{ maxWidth: 560, marginInline: 'auto', fontSize: isCompact ? '1rem' : undefined }}>
             {loading
               ? 'Loading flight systems, sector signatures, and celestial landmarks.'
               : 'Camera is descending into the navigable universe. Control will be transferred after the map expansion completes.'}
@@ -1265,31 +1312,150 @@ function IntroOverlay({ phase, reveal, loadingProgress }) {
 }
 
 function ControlsPanel({ show }) {
+  const { isMobile, isCompact } = useViewportInfo()
   if (!show) return null
   return (
-    <div className="panel panel-main top-left" style={{ position: 'absolute', top: 104, left: 24, maxWidth: 280, zIndex: 13 }}>
+    <div className="panel panel-main top-left" style={{ position: 'absolute', top: isMobile ? 84 : 104, left: isMobile ? 12 : 24, maxWidth: isCompact ? 'calc(100vw - 24px)' : 280, zIndex: 13 }}>
       <div className="tagline">Controls (Press H to hide)</div>
-      <div className="body-copy" style={{ fontSize: '0.8rem', lineHeight: 1.4 }}>
+      <div className="body-copy" style={{ fontSize: isCompact ? '0.75rem' : '0.8rem', lineHeight: 1.4 }}>
         <strong>W</strong> / ↑ thrust · <strong>S</strong> / ↓ brake · <strong>A,D</strong> turn · <strong>Space</strong> / <strong>Ctrl</strong> pitch · <strong>Shift</strong> boost · <strong>M</strong> map · <strong>R</strong> reset
       </div>
     </div>
   )
 }
 
+
+function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteracted, setShowControls, setInput }) {
+  const { isMobile, isCompact, isShort, isTouch } = useViewportInfo()
+
+  if (!visible || !isTouch) return null
+
+  const stop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const setPress = (key, value) => (e) => {
+    stop(e)
+    setInput((prev) => ({ ...prev, [key]: value }))
+    if (value) setHasInteracted(true)
+  }
+
+  const tap = (handler) => (e) => {
+    stop(e)
+    setHasInteracted(true)
+    handler()
+  }
+
+  const buttonBase = {
+    border: '1px solid rgba(196,214,255,0.14)',
+    background: 'linear-gradient(180deg, rgba(9,15,28,0.84), rgba(5,10,20,0.7))',
+    color: '#e9f2ff',
+    borderRadius: 16,
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    boxShadow: '0 18px 40px rgba(0,0,0,0.28)',
+    touchAction: 'none',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    display: 'grid',
+    placeItems: 'center',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+  }
+
+  const dpadSize = isCompact ? 56 : isMobile ? 62 : 68
+  const actionWidth = isCompact ? 76 : 88
+  const actionHeight = isCompact ? 56 : 64
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 21,
+        touchAction: 'none',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          display: 'flex',
+          gap: 8,
+          pointerEvents: 'auto',
+        }}
+      >
+        <button style={{ ...buttonBase, height: 38, minWidth: 62, padding: '0 14px', fontSize: '0.72rem' }} onPointerDown={tap(() => setMode((prev) => (prev === 'flight' ? 'map' : 'flight')))}>
+          MAP
+        </button>
+        <button style={{ ...buttonBase, height: 38, minWidth: 62, padding: '0 14px', fontSize: '0.72rem' }} onPointerDown={tap(() => { setMode('flight'); onReset() })}>
+          RESET
+        </button>
+        <button style={{ ...buttonBase, height: 38, minWidth: 54, padding: '0 12px', fontSize: '0.72rem' }} onPointerDown={tap(() => setShowControls((prev) => !prev))}>
+          HUD
+        </button>
+      </div>
+
+      {phase === 'play' && mode === 'flight' && (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              left: 12,
+              bottom: isShort ? 12 : 18,
+              display: 'grid',
+              gridTemplateColumns: `${dpadSize}px ${dpadSize}px ${dpadSize}px`,
+              gridTemplateRows: `${dpadSize}px ${dpadSize}px`,
+              gap: 8,
+              pointerEvents: 'auto',
+            }}
+          >
+            <div />
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('forward', true)} onPointerUp={setPress('forward', false)} onPointerCancel={setPress('forward', false)} onPointerLeave={setPress('forward', false)}>↑</button>
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '0.92rem' }} onPointerDown={setPress('up', true)} onPointerUp={setPress('up', false)} onPointerCancel={setPress('up', false)} onPointerLeave={setPress('up', false)}>UP</button>
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('left', true)} onPointerUp={setPress('left', false)} onPointerCancel={setPress('left', false)} onPointerLeave={setPress('left', false)}>←</button>
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('back', true)} onPointerUp={setPress('back', false)} onPointerCancel={setPress('back', false)} onPointerLeave={setPress('back', false)}>↓</button>
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('right', true)} onPointerUp={setPress('right', false)} onPointerCancel={setPress('right', false)} onPointerLeave={setPress('right', false)}>→</button>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: isShort ? 12 : 18,
+              display: 'grid',
+              gridTemplateColumns: `${actionWidth}px`,
+              gap: 8,
+              pointerEvents: 'auto',
+            }}
+          >
+            <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.84rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>BOOST</button>
+            <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.82rem' }} onPointerDown={setPress('down', true)} onPointerUp={setPress('down', false)} onPointerCancel={setPress('down', false)} onPointerLeave={setPress('down', false)}>DOWN</button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showControls, isShipMoving }) {
+  const { isMobile, isCompact, isShort, isTouch } = useViewportInfo()
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
       <div className="speed-lines" style={{ opacity: Math.min(1, boostLevel) }} />
 
-      <div className="panel panel-compact top-left">
+      <div className="panel panel-compact top-left" style={{ left: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 180 : undefined }}>
         <div className="tagline">DRYTRON SATELLAR</div>
         <div className="title-sm">ELUNERAS</div>
       </div>
 
       <ControlsPanel show={showControls && !isShipMoving} />
 
-      <div className="panel panel-compact top-right">
+      <div className="panel panel-compact top-right" style={{ right: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined }}>
         <div className="tagline">{mode === 'map' ? 'Mode' : 'Velocity'}</div>
         <div className="kv">{mode === 'map' ? 'MAP' : hud.speed}</div>
         <div className="muted">{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
@@ -1300,10 +1466,10 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
           className="panel panel-main"
           style={{
             position: 'absolute',
-            left: 24,
-            bottom: 24,
-            width: 'min(300px, calc(100vw - 420px))',
-            padding: '14px 16px',
+            left: isMobile ? 12 : 24,
+            bottom: isMobile ? (isTouch ? 150 : 12) : 24,
+            width: isCompact ? 'calc(100vw - 24px)' : isMobile ? 'min(360px, calc(100vw - 24px))' : 'min(300px, calc(100vw - 420px))',
+            padding: isCompact ? '12px 14px' : '14px 16px',
             zIndex: 12,
           }}
         >
@@ -1325,11 +1491,13 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
         className="panel panel-main bottom-right"
         style={{
           position: 'absolute',
-          right: 24,
-          bottom: 24,
-          padding: '10px 14px',
-          fontSize: '0.85rem',
+          right: isMobile ? 12 : 24,
+          bottom: isMobile ? (isTouch ? 150 : 12) : 24,
+          padding: isCompact ? '10px 12px' : '10px 14px',
+          fontSize: isCompact ? '0.8rem' : '0.85rem',
           zIndex: 12,
+          width: isCompact ? 'calc(100vw - 24px)' : undefined,
+          maxWidth: isMobile ? 320 : undefined,
         }}
       >
         <div className="grid-stats">
@@ -1340,7 +1508,7 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
         </div>
       </div>
 
-      {!hasInteracted && (
+      {!hasInteracted && !isMobile && (
         <div className="panel panel-main bottom-left">
           <div className="tagline">Concept</div>
           <p className="body-copy">
@@ -1379,6 +1547,45 @@ export default function App() {
   const [hasInteracted, setHasInteracted] = useState(false)
   const [showControls, setShowControls] = useState(false)
   const [isShipMoving, setIsShipMoving] = useState(false)
+  const viewport = useViewportInfo()
+  const [mobileInput, setMobileInput] = useState({
+    forward: false,
+    back: false,
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+    boost: false,
+  })
+
+  useEffect(() => {
+    if (!viewport.isTouch) return
+    setShowControls(true)
+  }, [viewport.isTouch])
+
+  useEffect(() => {
+    const clearTouchInput = () => {
+      setMobileInput({
+        forward: false,
+        back: false,
+        left: false,
+        right: false,
+        up: false,
+        down: false,
+        boost: false,
+      })
+    }
+
+    window.addEventListener('pointerup', clearTouchInput)
+    window.addEventListener('pointercancel', clearTouchInput)
+    window.addEventListener('blur', clearTouchInput)
+
+    return () => {
+      window.removeEventListener('pointerup', clearTouchInput)
+      window.removeEventListener('pointercancel', clearTouchInput)
+      window.removeEventListener('blur', clearTouchInput)
+    }
+  }, [])
 
   useEffect(() => {
     if (!bootReady) {
@@ -1472,11 +1679,23 @@ export default function App() {
             boostLevel={boostLevel}
             setBoostLevel={setBoostLevel}
             onShipMoving={setIsShipMoving}
+            mobileInput={mobileInput}
           />
         </Canvas>
       </div>
 
       <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} showControls={showControls} isShipMoving={isShipMoving} />
+      <MobileControls
+        visible={bootReady}
+        phase={phase}
+        mode={mode}
+        setMode={setMode}
+        onReset={() => setResetTick((v) => v + 1)}
+        setHasInteracted={setHasInteracted}
+        setShowControls={setShowControls}
+        input={mobileInput}
+        setInput={setMobileInput}
+      />
       <IntroOverlay phase={phase} reveal={reveal} loadingProgress={loadingProgress} />
     </div>
   )
