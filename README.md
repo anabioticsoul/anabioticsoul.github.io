@@ -1,5 +1,11 @@
 # anabioticsoul.github.io
 
+[![Deploy to GitHub Pages](https://github.com/anabioticsoul/anabioticsoul.github.io/actions/workflows/deploy.yml/badge.svg)](https://github.com/anabioticsoul/anabioticsoul.github.io/actions/workflows/deploy.yml)
+![React](https://img.shields.io/badge/React-19-61DAFB)
+![Three.js](https://img.shields.io/badge/Three.js-3D-black)
+![Vite](https://img.shields.io/badge/Vite-build-646CFF)
+[![Live Site](https://img.shields.io/badge/site-online-brightgreen)](https://anabioticsoul.github.io/)
+
 A personal interactive portfolio website built with **React**, **Vite**, **Three.js**, and **React Three Fiber**.
 
 This project presents my work in an explorable 3D space environment. Instead of using a traditional flat portfolio layout, the site is designed as an interactive cosmic scene where visitors can navigate through different sections such as **About**, **Projects**, **Publications**, and **Contact**.
