@@ -19,7 +19,7 @@ function cloneScene(scene) {
   return s
 }
 
-export default function Nebula({ position = [0, -50, -30], scale = 22, rotation = [0, 0, 0] }) {
+export default function Nebula({ position = [0, -50, 10], scale = 22, rotation = [0, 0, 0] }) {
   const group = useRef()
   const { scene } = useGLTF('/models/need_some_space.glb')
 

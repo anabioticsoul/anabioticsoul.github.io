@@ -5,6 +5,9 @@ import { MdEmail } from 'react-icons/md'
 import { FaGithub, FaInstagram } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import About from './About'
 import Project from './Projects'
 import Faifnir from './Fafnir'
@@ -115,12 +118,12 @@ function SpaceEnvironment() {
     <>
       <color attach="background" args={['#02040c']} />
       <fog attach="fog" args={['#02040c', 40, 260]} />
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[8, 10, 6]} intensity={1.1} color="#9cc8ff" />
-      <pointLight position={[-24, 10, -20]} intensity={20} distance={120} color="#356bff" />
-      <pointLight position={[24, -8, 20]} intensity={12} distance={100} color="#7e53ff" />
+      <ambientLight intensity={0.42} />
+      <directionalLight position={[8, 10, 6]} intensity={1.1} color="#b8f1ff" />
+      <pointLight position={[-24, 10, -20]} intensity={20} distance={120} color="#4aa8ff" />
+      <pointLight position={[24, -8, 20]} intensity={12} distance={100} color="#4ce0d2" />
       <Stars radius={280} depth={180} count={9000} factor={4.5} saturation={0} fade speed={0.45} />
-      <Sparkles count={220} scale={[180, 100, 220]} size={2.2} speed={0.25} color="#a6c8ff" />
+      <Sparkles count={220} scale={[180, 100, 220]} size={2.2} speed={0.25} color="#c7f9ff" />
     </>
   )
 }
@@ -398,6 +401,49 @@ function CelestialMarker({ item, active }) {
   }
 }
 
+
+
+function BloomFx() {
+  const { gl, scene, camera, size } = useThree()
+  const composerRef = useRef()
+
+  useEffect(() => {
+    gl.toneMapping = THREE.ACESFilmicToneMapping
+    gl.toneMappingExposure = 1.12
+
+    const composer = new EffectComposer(gl)
+    composer.addPass(new RenderPass(scene, camera))
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(size.width, size.height),
+      0.1,
+      0.2,
+      0.45
+    )
+    composer.addPass(bloomPass)
+
+    composerRef.current = composer
+
+    return () => {
+      composer.dispose()
+      composerRef.current = null
+    }
+  }, [gl, scene, camera, size.width, size.height])
+
+  useEffect(() => {
+    if (composerRef.current) {
+      composerRef.current.setSize(size.width, size.height)
+    }
+  }, [size])
+
+  useFrame(() => {
+    if (composerRef.current) {
+      gl.autoClear = true
+      composerRef.current.render()
+    }
+  }, 1)
+
+  return null
+}
 
 function SectionMarkers({ activeSection, reveal, mode }) {
   if (mode === 'map') return null
@@ -1323,6 +1369,7 @@ export default function App() {
         <Canvas camera={{ position: [0, 3, 32], fov: 52 }} gl={{ antialias: true }}>
           <SpaceEnvironment />
           <SpaceBackdrop position={[0, 8, -150]} scale={22} rotation={[0, 0, 0]} />
+          <BloomFx />
           <SceneController
             setHud={setHud}
             activeSection={activeSection}
