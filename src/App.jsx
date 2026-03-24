@@ -1,12 +1,13 @@
-
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles, Stars, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 import About from './About'
+import Project from './Projects'
 import Faifnir from './Fafnir'
 import SpaceBackdrop from './SpaceBackdrop'
 import currentMarkerUrl from '../public/map-marker.svg'
+
 const SECTION_DEFS = [
   {
     id: 'about',
@@ -19,6 +20,7 @@ const SECTION_DEFS = [
     cta: ['Profile', 'Timeline', 'CV'],
     type: 'planet',
     color: '#6ea8ff',
+    collisionRadius: 3.6,
   },
   {
     id: 'projects',
@@ -31,6 +33,7 @@ const SECTION_DEFS = [
     cta: ['Featured', 'Archive', 'Source'],
     type: 'ringed',
     color: '#9f8cff',
+    collisionRadius: 5.2,
   },
   {
     id: 'publications',
@@ -43,6 +46,7 @@ const SECTION_DEFS = [
     cta: ['Papers', 'Datasets', 'Talks'],
     type: 'binary',
     color: '#85d7ff',
+    collisionRadius: 4,
   },
   {
     id: 'contact',
@@ -55,6 +59,7 @@ const SECTION_DEFS = [
     cta: ['Email', 'GitHub', 'Links'],
     type: 'station',
     color: '#ffd36e',
+    collisionRadius: 3.2,
   },
 ]
 
@@ -359,6 +364,10 @@ function CelestialMarker({ item, active }) {
     return <About active={active} />
   }
 
+  if (item.id === 'projects') {
+    return <Project active={active} />
+  }
+
   switch (item.type) {
     case 'planet':
       return <PlanetMarker active={active} color={item.color} />
@@ -373,6 +382,7 @@ function CelestialMarker({ item, active }) {
   }
 }
 
+
 function SectionMarkers({ activeSection, reveal, mode }) {
   if (mode === 'map') return null
 
@@ -385,26 +395,49 @@ function SectionMarkers({ activeSection, reveal, mode }) {
         return (
           <group key={item.id} position={item.pos}>
             <CelestialMarker item={item} active={isActive} />
+            {/* 文字颜色/大小 */}
             <Text
               position={[0, 5.2, 0]}
-              color={isActive ? '#ffffff' : '#dbe7ff'}
-              fontSize={1.15}
+              color="#ffffff"
+              fontSize={1.45}
               letterSpacing={0.12}
               anchorX="center"
               anchorY="middle"
+              renderOrder={30}
+              outlineWidth="8%"
+              outlineColor="#ffffff"
             >
               {item.title}
+              <meshBasicMaterial
+                depthTest={false}
+                depthWrite={false}
+                toneMapped={false}
+                fog={false}
+                transparent={false}
+                opacity={1}
+              />
             </Text>
             <Text
               position={[0, 3.7, 0]}
-              color="#94a8d8"
-              fontSize={0.42}
+              color="#ffffff"
+              fontSize={0.6}
               maxWidth={14}
               textAlign="center"
               anchorX="center"
               anchorY="middle"
+              renderOrder={30}
+              outlineWidth="6%"
+              outlineColor="#ffffff"
             >
               {item.subtitle}
+              <meshBasicMaterial
+                depthTest={false}
+                depthWrite={false}
+                toneMapped={false}
+                fog={false}
+                transparent={false}
+                opacity={1}
+              />
             </Text>
           </group>
         )
@@ -447,11 +480,11 @@ function MapLabels({ sections, mode, activeSection }) {
             position={[section.pos[0], section.pos[1] + 10.4, section.pos[2]]}
           >
             <Text
-              fontSize={active ? 1.15 : 0.96}
+              fontSize={active ? 1.22 : 1.04}
               maxWidth={22}
               anchorX="center"
               anchorY="middle"
-              color={active ? '#ffffff' : '#c7dbff'}
+              color={active ? '#ffffff' : '#dce8ff'}
               outlineWidth={0.16}
               outlineColor="#07101f"
               renderOrder={30}
@@ -465,7 +498,6 @@ function MapLabels({ sections, mode, activeSection }) {
     </group>
   )
 }
-
 
 function CurrentPositionMarker({ shipRef, mode }) {
   const { camera } = useThree()
@@ -555,6 +587,7 @@ function SceneController({
   resetTick,
   boostLevel,
   setBoostLevel,
+  onShipMoving,
 }) {
   const ship = useRef()
   const keys = useKeys()
@@ -570,6 +603,8 @@ function SceneController({
   const tempLookMix = useMemo(() => new THREE.Vector3(), [])
   const freeOffset = useMemo(() => new THREE.Vector3(), [])
   const freeRight = useMemo(() => new THREE.Vector3(), [])
+  const collisionDelta = useMemo(() => new THREE.Vector3(), [])
+  const collisionNormal = useMemo(() => new THREE.Vector3(), [])
 
   const sections = useMemo(
     () =>
@@ -582,6 +617,7 @@ function SceneController({
 
   const startShipPos = useMemo(() => new THREE.Vector3(0, -1, 12), [])
   const startCamPos = useMemo(() => new THREE.Vector3(0, 3, 32), [])
+  const shipCollisionRadius = 2.4
 
   const resetState = useRef({
     active: false,
@@ -704,8 +740,7 @@ function SceneController({
     resetState.current.fromShipQuat.copy(ship.current.quaternion)
     resetState.current.fromCamPos.copy(camera.position)
 
-    tempForward.set(0, 0, 1).applyQuaternion(ship.current.quaternion).normalize()
-    resetState.current.fromLookAt.copy(ship.current.position).add(tempForward.clone().multiplyScalar(16))
+    resetState.current.fromLookAt.copy(ship.current.position)
 
     velocity.current.set(0, 0, 0)
     setBoostLevel(0)
@@ -723,7 +758,7 @@ function SceneController({
     cameraControl.current.targetDistance = 12.7
     mapZoom.current.zoom = 220
     mapZoom.current.targetZoom = 220
-  }, [resetTick, camera, phase, setActiveSection, setBoostLevel, setMode, tempForward])
+  }, [resetTick, camera, phase, setActiveSection, setBoostLevel, setMode])
 
   useFrame((state, delta) => {
     if (!ship.current) return
@@ -761,7 +796,7 @@ function SceneController({
       camera.position.lerpVectors(resetState.current.fromCamPos, startCamPos, k)
 
       tempLookA.copy(resetState.current.fromLookAt)
-      tempLookB.set(0, 0, -10)
+      tempLookB.copy(ship.current.position)
       tempLookMix.lerpVectors(tempLookA, tempLookB, k)
       camera.lookAt(tempLookMix)
       setBoostLevel((prev) => lerp(prev, 0, 0.18))
@@ -780,7 +815,7 @@ function SceneController({
         ship.current.position.copy(startShipPos)
         ship.current.rotation.set(0.08, Math.PI, 0)
         camera.position.copy(startCamPos)
-        camera.lookAt(0, 0, -10)
+        camera.lookAt(ship.current.position)
         velocity.current.set(0, 0, -8)
       }
       return
@@ -830,6 +865,12 @@ function SceneController({
       cameraControl.current.pointerId = null
     }
 
+    // 检测飞船是否被用户实际控制；仅在明确操作飞船时隐藏 H 面板
+    const isMoving = hasManualFlightInput
+    if (onShipMoving) {
+      onShipMoving(isMoving)
+    }
+
     const yawSpeed = boostNow ? 1.45 : 1.2
     const pitchSpeed = boostNow ? 0.95 : 0.8
 
@@ -856,6 +897,28 @@ function SceneController({
     ship.current.position.x = clamp(ship.current.position.x, -32, 32)
     ship.current.position.y = clamp(ship.current.position.y, -18, 18)
 
+    for (const section of sections) {
+      collisionDelta.copy(ship.current.position).sub(section.position)
+      let distance = collisionDelta.length()
+      const minDistance = shipCollisionRadius + (section.collisionRadius || 7)
+
+      if (distance < minDistance) {
+        if (distance < 0.0001) {
+          collisionDelta.set(0, 0, 1)
+          distance = 1
+        }
+
+        collisionNormal.copy(collisionDelta).divideScalar(distance)
+        ship.current.position.copy(section.position).addScaledVector(collisionNormal, minDistance)
+
+        const outwardSpeed = velocity.current.dot(collisionNormal)
+        if (outwardSpeed < 0) {
+          velocity.current.addScaledVector(collisionNormal, -outwardSpeed)
+          velocity.current.multiplyScalar(0.9)
+        }
+      }
+    }
+
     const ctrl = cameraControl.current
     ctrl.yaw = lerp(ctrl.yaw, ctrl.targetYaw, 0.14)
     ctrl.pitch = lerp(ctrl.pitch, ctrl.targetPitch, 0.14)
@@ -875,7 +938,7 @@ function SceneController({
 
       tempCamPos.copy(ship.current.position).add(freeOffset)
       camera.position.lerp(tempCamPos, 1 - Math.pow(0.0025, delta))
-      tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(14))
+      tempCamLook.copy(ship.current.position)
       camera.lookAt(tempCamLook)
     } else {
       tempCamPos
@@ -884,7 +947,7 @@ function SceneController({
         .add(tempUp.clone().multiplyScalar(cameraHeight))
 
       camera.position.lerp(tempCamPos, 1 - Math.pow(boostNow ? 0.0016 : 0.0025, delta))
-      tempCamLook.copy(ship.current.position).add(tempForward.clone().multiplyScalar(boostNow ? 19 : 16))
+      tempCamLook.copy(ship.current.position)
       camera.lookAt(tempCamLook)
 
       ctrl.targetYaw = lerp(ctrl.targetYaw, 0, 0.18)
@@ -903,7 +966,7 @@ function SceneController({
       }
     }
 
-    const currentSection = nearestDistance < 16 ? nearestSection : null
+    const currentSection = nearestDistance < 24 ? nearestSection : null
 
     if (currentSection?.id !== activeSection?.id || (!currentSection && activeSection)) {
       setActiveSection(currentSection)
@@ -926,7 +989,7 @@ function SceneController({
   return (
     <group>
       <group ref={ship} position={[0, -1, 12]} rotation={[0.08, Math.PI, 0]}>
-        <Faifnir scale={0.72} visible={phase !== 'loading'} boostLevel={boostLevel} />
+        <Faifnir scale={0.2} visible={phase !== 'loading'} boostLevel={boostLevel} />
         <WarpLines active={phase === 'play' && mode === 'flight'} amount={boostLevel} />
       </group>
 
@@ -1028,7 +1091,19 @@ function IntroOverlay({ phase, reveal }) {
   )
 }
 
-function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
+function ControlsPanel({ show }) {
+  if (!show) return null
+  return (
+    <div className="panel panel-main top-left" style={{ position: 'absolute', top: 104, left: 24, maxWidth: 280, zIndex: 13 }}>
+      <div className="tagline">Controls (Press H to hide)</div>
+      <div className="body-copy" style={{ fontSize: '0.8rem', lineHeight: 1.4 }}>
+        <strong>W</strong> / ↑ thrust · <strong>S</strong> / ↓ brake · <strong>A,D</strong> turn · <strong>Space</strong> / <strong>Ctrl</strong> pitch · <strong>Shift</strong> boost · <strong>M</strong> map · <strong>R</strong> reset
+      </div>
+    </div>
+  )
+}
+
+function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showControls, isShipMoving }) {
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
@@ -1039,6 +1114,8 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
         <div className="title-sm">STARLINE-01</div>
       </div>
 
+      <ControlsPanel show={showControls && !isShipMoving} />
+
       <div className="panel panel-compact top-right">
         <div className="tagline">{mode === 'map' ? 'Mode' : 'Velocity'}</div>
         <div className="kv">{mode === 'map' ? 'MAP' : hud.speed}</div>
@@ -1046,10 +1123,22 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
       </div>
 
       {!activeSection && (
-        <div className="panel panel-main left-mid">
+        <div
+          className="panel panel-main"
+          style={{
+            position: 'absolute',
+            left: 24,
+            bottom: 24,
+            width: 'min(300px, calc(100vw - 420px))',
+            padding: '14px 16px',
+            zIndex: 12,
+          }}
+        >
           <div className="tagline">Current Sector</div>
-          <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
-          <p className="body-copy">
+          <div className="title-sm" style={{ fontSize: '1rem', marginBottom: 6 }}>
+            {phase !== 'play' ? 'INTRO' : hud.sector}
+          </div>
+          <p className="body-copy" style={{ fontSize: '0.88rem', lineHeight: 1.45, margin: 0 }}>
             {phase !== 'play'
               ? 'Stand by while the world loads and the navigation map unfolds.'
               : hud.sectorHint}
@@ -1059,21 +1148,22 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
 
       <SectorPanel activeSection={activeSection} mode={mode} />
 
-      <div className="panel panel-main bottom-center">
-        <div className="controls-wrap">
-          <div>
-            <div className="tagline">Controls</div>
-            <div className="controls-text">
-              W / ↑ thrust · S / ↓ brake · A,D turn · Space / Ctrl pitch · Shift boost · M map · R reset
-            </div>
-          </div>
-
-          <div className="grid-stats">
-            <div className="label">Boost</div>
-            <div>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
-            <div className="label">Position</div>
-            <div>{hud.position}</div>
-          </div>
+      <div
+        className="panel panel-main bottom-right"
+        style={{
+          position: 'absolute',
+          right: 24,
+          bottom: 24,
+          padding: '10px 14px',
+          fontSize: '0.85rem',
+          zIndex: 12,
+        }}
+      >
+        <div className="grid-stats">
+          <div className="label" style={{ fontSize: '0.7rem' }}>Boost</div>
+          <div>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
+          <div className="label" style={{ fontSize: '0.7rem' }}>Position</div>
+          <div style={{ fontSize: '0.8rem' }}>{hud.position}</div>
         </div>
       </div>
 
@@ -1113,6 +1203,8 @@ export default function App() {
   const [resetTick, setResetTick] = useState(0)
   const [boostLevel, setBoostLevel] = useState(0)
   const [hasInteracted, setHasInteracted] = useState(false)
+  const [showControls, setShowControls] = useState(false)
+  const [isShipMoving, setIsShipMoving] = useState(false)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('intro'), 300)
@@ -1151,7 +1243,13 @@ export default function App() {
     const onKey = (e) => {
       if (e.repeat) return
       setHasInteracted(true)
+
       if (phase !== 'play') return
+
+      if (e.code === 'KeyH') {
+        setShowControls((prev) => !prev)
+        return
+      }
 
       if (e.code === 'KeyM') {
         setMode((prev) => (prev === 'flight' ? 'map' : 'flight'))
@@ -1184,11 +1282,12 @@ export default function App() {
             resetTick={resetTick}
             boostLevel={boostLevel}
             setBoostLevel={setBoostLevel}
+            onShipMoving={setIsShipMoving}
           />
         </Canvas>
       </div>
 
-      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} />
+      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} showControls={showControls} isShipMoving={isShipMoving} />
       <IntroOverlay phase={phase} reveal={reveal} />
     </div>
   )

@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import Nebula from './Nebula'
 
 function cloneScene(scene) {
   const s = scene.clone(true)
@@ -47,7 +48,8 @@ function NebulaSkybox() {
       if (mat.color) mat.color.multiplyScalar(0.58)
       if (mat.emissive) mat.emissive.multiplyScalar(0.5)
       if ('emissiveIntensity' in mat) {
-        mat.emissiveIntensity = Math.min(0.1, mat.emissiveIntensity ?? 1)
+        // 背景亮度上限
+        mat.emissiveIntensity = Math.min(0.9, mat.emissiveIntensity ?? 1)
       }
 
       // 不要统一覆盖 transparent / opacity / emissive
@@ -82,42 +84,17 @@ function NebulaSkybox() {
   )
 }
 
-function DeepSpaceObject({ position = [0, 8, -150], scale = 22, rotation = [0, 0, 0] }) {
-  const group = useRef()
-  const { scene } = useGLTF('/models/need_some_space.glb')
-
-  const cloned = useMemo(() => {
-    const s = cloneScene(scene)
-
-    s.traverse((obj) => {
-      if (!obj.isMesh || !obj.material) return
-      obj.material.side = THREE.DoubleSide
-    })
-
-    return s
-  }, [scene])
-
-  useFrame((_, delta) => {
-    if (!group.current) return
-    group.current.rotation.y += delta * 0.03
-    group.current.rotation.z += delta * 0.01
-  })
-
-  return (
-    <group ref={group} position={position} scale={scale} rotation={rotation}>
-      <primitive object={cloned} />
-    </group>
-  )
+function DeepSpaceObject() {
+  return <Nebula />
 }
 
 export default function SpaceBackdrop(props) {
   return (
     <>
       <NebulaSkybox />
-      <DeepSpaceObject {...props} />
+      <DeepSpaceObject />
     </>
   )
 }
 
 useGLTF.preload('/models/nebula_skybox_16k.glb')
-useGLTF.preload('/models/need_some_space.glb')
