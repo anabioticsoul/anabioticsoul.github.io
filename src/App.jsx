@@ -1183,11 +1183,12 @@ function SectorPanel({ activeSection, mode }) {
   )
 }
 
-function IntroOverlay({ phase, reveal }) {
+function IntroOverlay({ phase, reveal, loadingProgress }) {
   if (phase === 'play') return null
 
   const loading = phase === 'loading'
   const introPercent = Math.round(reveal * 100)
+  const progressValue = loading ? Math.round(loadingProgress) : introPercent
 
   return (
     <div className="overlay" style={{ pointerEvents: 'none' }}>
@@ -1210,13 +1211,52 @@ function IntroOverlay({ phase, reveal }) {
           opacity: loading ? 1 : Math.max(0, 1 - reveal * 0.9),
         }}
       >
-        <div>
+        <div style={{ width: 'min(560px, calc(100vw - 56px))' }}>
           <div className="tagline">{loading ? 'Initializing' : 'Expanding Star Map'}</div>
           <div className="title-lg">{loading ? 'Deep Space Systems' : `World Build ${introPercent}%`}</div>
           <div className="body-copy" style={{ maxWidth: 560, marginInline: 'auto' }}>
             {loading
               ? 'Loading flight systems, sector signatures, and celestial landmarks.'
               : 'Camera is descending into the navigable universe. Control will be transferred after the map expansion completes.'}
+          </div>
+
+          <div style={{ marginTop: 22, width: '100%' }}>
+            <div
+              style={{
+                height: 8,
+                width: '100%',
+                borderRadius: 999,
+                overflow: 'hidden',
+                background: 'rgba(196, 214, 255, 0.14)',
+                boxShadow: 'inset 0 0 0 1px rgba(196, 214, 255, 0.08)',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${progressValue}%`,
+                  borderRadius: 999,
+                  background: 'linear-gradient(90deg, rgba(116,164,255,0.92), rgba(189,224,255,0.96))',
+                  boxShadow: '0 0 18px rgba(116,164,255,0.35)',
+                  transition: 'width 180ms ease',
+                }}
+              />
+            </div>
+            <div
+              style={{
+                marginTop: 10,
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 12,
+                fontSize: '0.82rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'rgba(214, 228, 255, 0.72)',
+              }}
+            >
+              <span>{loading ? 'System Load' : 'Map Deployment'}</span>
+              <span>{progressValue}%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1332,6 +1372,7 @@ export default function App() {
   const [phase, setPhase] = useState('loading')
   const [bootReady, setBootReady] = useState(false)
   const [mode, setMode] = useState('flight')
+  const [loadingProgress, setLoadingProgress] = useState(0)
   const [reveal, setReveal] = useState(0)
   const [resetTick, setResetTick] = useState(0)
   const [boostLevel, setBoostLevel] = useState(0)
@@ -1415,7 +1456,7 @@ export default function App() {
         }}
       >
         <Canvas camera={{ position: [0, 3, 32], fov: 52 }} gl={{ antialias: true }}>
-          <BootReadyBridge onReady={() => setBootReady(true)} />
+          <BootReadyBridge onReady={() => setBootReady(true)} onProgress={setLoadingProgress} />
           <SpaceEnvironment />
           <SpaceBackdrop position={[0, 8, -150]} scale={22} rotation={[0, 0, 0]} />
           <BloomFx />
@@ -1436,7 +1477,7 @@ export default function App() {
       </div>
 
       <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} showControls={showControls} isShipMoving={isShipMoving} />
-      <IntroOverlay phase={phase} reveal={reveal} />
+      <IntroOverlay phase={phase} reveal={reveal} loadingProgress={loadingProgress} />
     </div>
   )
 }
