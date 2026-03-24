@@ -1223,7 +1223,7 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
         <div className="panel panel-main bottom-left">
           <div className="tagline">Concept</div>
           <p className="body-copy">
-            Draconis was not built merely to cross space, but to remember it.
+            Draconis was not built merely to cross space, but to remember it. To pilot Draconis was to enter a pact with the unknown. Every sector it approached became part of its story, every turn through the void another chapter in a journey without final destination. In the endless expanse of space, Draconis was both wanderer and guardian.
           </p>
         </div>
       )}
