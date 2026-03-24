@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Sparkles, Stars, Text, Line } from '@react-three/drei'
+import { Sparkles, Stars, Text, Line, useProgress } from '@react-three/drei'
 import { MdEmail } from 'react-icons/md'
 import { FaGithub, FaInstagram } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
@@ -401,7 +401,41 @@ function CelestialMarker({ item, active }) {
   }
 }
 
+function BootReadyBridge({ onReady }) {
+  const { active, progress } = useProgress()
+  const doneRef = useRef(false)
 
+  useEffect(() => {
+    if (doneRef.current) return
+    if (active || progress < 100) return
+
+    let cancelled = false
+    let raf = 0
+    let frames = 0
+
+    const tick = () => {
+      if (cancelled) return
+      frames += 1
+
+      if (frames >= 8) {
+        doneRef.current = true
+        onReady()
+        return
+      }
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+    }
+  }, [active, progress, onReady])
+
+  return null
+}
 
 function BloomFx() {
   const { gl, scene, camera, size } = useThree()
@@ -1296,6 +1330,7 @@ export default function App() {
   })
 
   const [phase, setPhase] = useState('loading')
+  const [bootReady, setBootReady] = useState(false)
   const [mode, setMode] = useState('flight')
   const [reveal, setReveal] = useState(0)
   const [resetTick, setResetTick] = useState(0)
@@ -1305,6 +1340,11 @@ export default function App() {
   const [isShipMoving, setIsShipMoving] = useState(false)
 
   useEffect(() => {
+    if (!bootReady) {
+      setPhase('loading')
+      return
+    }
+
     const t1 = setTimeout(() => setPhase('intro'), 300)
     const t2 = setTimeout(() => setPhase('play'), 1800)
 
@@ -1321,7 +1361,7 @@ export default function App() {
       window.removeEventListener('pointerdown', skipToPlay)
       window.removeEventListener('keydown', skipToPlay)
     }
-  }, [])
+  }, [bootReady])
 
   useEffect(() => {
     let raf = 0
@@ -1340,6 +1380,8 @@ export default function App() {
   useEffect(() => {
     const onKey = (e) => {
       if (e.repeat) return
+      if (!bootReady) return
+
       setHasInteracted(true)
 
       if (phase !== 'play') return
@@ -1361,12 +1403,19 @@ export default function App() {
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase])
+  }, [bootReady, phase])
 
   return (
     <div className="app">
-      <div className="canvas-wrap">
+      <div
+        className="canvas-wrap"
+        style={{
+          opacity: bootReady ? 1 : 0,
+          transition: 'opacity 300ms ease',
+        }}
+      >
         <Canvas camera={{ position: [0, 3, 32], fov: 52 }} gl={{ antialias: true }}>
+          <BootReadyBridge onReady={() => setBootReady(true)} />
           <SpaceEnvironment />
           <SpaceBackdrop position={[0, 8, -150]} scale={22} rotation={[0, 0, 0]} />
           <BloomFx />
