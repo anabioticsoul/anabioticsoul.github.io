@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#050816"/>
+      <stop offset="100%" stop-color="#111a3a"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c9f8ff"/>
+      <stop offset="50%" stop-color="#47d8ff"/>
+      <stop offset="100%" stop-color="#1b8dff"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eef4ff"/>
+      <stop offset="100%" stop-color="#9fb6e7"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a86fff"/>
+      <stop offset="100%" stop-color="#6ce7ff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+<!-- geometric star field -->
+  <g opacity="0.5">
+    <circle cx="140" cy="160" r="2" fill="#fff"/>
+    <circle cx="950" cy="120" r="3" fill="#fff"/>
+    <circle cx="1080" cy="300" r="2" fill="#fff"/>
+    <circle cx="180" cy="980" r="3" fill="#fff"/>
+    <circle cx="860" cy="1030" r="2" fill="#fff"/>
+    <circle cx="360" cy="240" r="2" fill="#fff"/>
+    <circle cx="260" cy="560" r="2" fill="#fff"/>
+    <circle cx="1020" cy="760" r="3" fill="#fff"/>
+    <path d="M300 110 l10 24 l24 10 l-24 10 l-10 24 l-10 -24 l-24 -10 l24 -10z" fill="#ffffff" opacity="0.7"/>
+    <path d="M940 210 l8 18 l18 8 l-18 8 l-8 18 l-8 -18 l-18 -8 l18 -8z" fill="#ffffff" opacity="0.6"/>
+    <path d="M160 760 l8 18 l18 8 l-18 8 l-8 18 l-8 -18 l-18 -8 l18 -8z" fill="#ffffff" opacity="0.5"/>
+  </g>
+
+  <!-- outer halo -->
+  <circle cx="600" cy="620" r="255" fill="none" stroke="url(#violet)" stroke-width="8" opacity="0.25"/>
+  <circle cx="600" cy="620" r="210" fill="none" stroke="#60dfff" stroke-width="2" opacity="0.18"/>
+
+  <!-- wings -->
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="350,530 170,450 220,350 410,430 470,560 390,610"
+             fill="#20358a" stroke="#8be9ff" stroke-width="6"/>
+    <polygon points="850,530 1030,450 980,350 790,430 730,560 810,610"
+             fill="#20358a" stroke="#8be9ff" stroke-width="6"/>
+
+    <!-- wing panels -->
+    <polygon points="250,430 215,365 280,392 305,458" fill="#244db8" stroke="#79dfff" stroke-width="4"/>
+    <polygon points="315,458 280,392 350,422 372,488" fill="#244db8" stroke="#79dfff" stroke-width="4"/>
+    <polygon points="380,485 348,421 415,448 438,514" fill="#244db8" stroke="#79dfff" stroke-width="4"/>
+
+    <polygon points="950,430 985,365 920,392 895,458" fill="#244db8" stroke="#79dfff" stroke-width="4"/>
+    <polygon points="885,458 920,392 850,422 828,488" fill="#244db8" stroke="#79dfff" stroke-width="4"/>
+    <polygon points="820,485 852,421 785,448 762,514" fill="#244db8" stroke="#79dfff" stroke-width="4"/>
+  </g>
+
+  <!-- shoulder towers -->
+  <g>
+    <polygon points="305,510 230,280 290,250 365,470" fill="#354fb7" stroke="#c9cfff" stroke-width="6"/>
+    <polygon points="405,470 340,250 395,228 455,445" fill="#3f5bd2" stroke="#d6ddff" stroke-width="6"/>
+    <polygon points="895,510 970,280 910,250 835,470" fill="#354fb7" stroke="#c9cfff" stroke-width="6"/>
+    <polygon points="795,470 860,250 805,228 745,445" fill="#3f5bd2" stroke="#d6ddff" stroke-width="6"/>
+  </g>
+
+  <!-- neck -->
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <!-- long segmented dragon neck extending upward -->
+    <path d="M600 535
+             C602 486, 606 440, 608 394
+             C610 348, 610 302, 608 254
+             C606 206, 604 156, 600 104"
+          fill="none" stroke="#dce6ff" stroke-width="40"/>
+    <path d="M600 535
+             C602 486, 606 440, 608 394
+             C610 348, 610 302, 608 254
+             C606 206, 604 156, 600 104"
+          fill="none" stroke="#8fa0c4" stroke-width="22"/>
+
+    <!-- segmented spine lights -->
+    <circle cx="602" cy="492" r="12" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+    <circle cx="606" cy="444" r="12" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+    <circle cx="608" cy="396" r="12" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+    <circle cx="609" cy="346" r="11" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+    <circle cx="608" cy="296" r="11" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+    <circle cx="606" cy="244" r="10" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+    <circle cx="603" cy="192" r="10" fill="#fff6b5" stroke="#9fe9ff" filter="url(#glow)"/>
+
+    <!-- small dorsal fins like tail spines -->
+    <path d="M622 448 L658 416 L632 482 Z" fill="url(#cyan)" stroke="#aef7ff" stroke-width="5"/>
+    <path d="M628 400 L666 366 L638 434 Z" fill="url(#cyan)" stroke="#aef7ff" stroke-width="5"/>
+    <path d="M630 352 L670 316 L640 388 Z" fill="url(#cyan)" stroke="#aef7ff" stroke-width="5"/>
+    <path d="M630 302 L666 268 L636 336 Z" fill="url(#cyan)" stroke="#aef7ff" stroke-width="5"/>
+    <path d="M624 248 L656 218 L630 282 Z" fill="url(#cyan)" stroke="#aef7ff" stroke-width="5"/>
+  </g>
+
+  <!-- head crest -->
+  <polygon points="600,88 650,170 628,246 600,266 572,246 550,170" fill="url(#cyan)" stroke="#b9f8ff" stroke-width="8"/>
+  <polygon points="566,162 514,198 538,256 586,224" fill="url(#cyan)" stroke="#aef7ff" stroke-width="7"/>
+  <polygon points="634,162 686,198 662,256 614,224" fill="url(#cyan)" stroke="#aef7ff" stroke-width="7"/>
+  <polygon points="600,48 636,112 622,188 578,188 564,112" fill="url(#cyan)" stroke="#b9f8ff" stroke-width="8"/>
+  <polygon points="600,10 630,70 600,108 570,70" fill="url(#cyan)" stroke="#b9f8ff" stroke-width="7"/>
+
+  
+
+  <!-- body connector: joins upper neck assembly to torso/body -->
+  <polygon points="548,332 652,332 690,430 600,560 510,430"
+           fill="#bcc7de" stroke="#dce6ff" stroke-width="8"/>
+  <polygon points="575,344 625,344 648,426 600,505 552,426"
+           fill="url(#cyan)" stroke="#9ef2ff" stroke-width="5" opacity="0.78"/>
+
+  <!-- face -->
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="540,332 660,332 710,454 600,560 490,454" fill="url(#steel)" stroke="#dce6ff" stroke-width="7"/>
+    <polygon points="545,360 600,317 655,360 640,434 560,434" fill="#071227" stroke="#90e8ff" stroke-width="7"/>
+    <circle cx="600" cy="386" r="54" fill="#ffe66a" stroke="#ffffd0" stroke-width="8" filter="url(#glow)"/>
+    <path d="M542 442 L600 487 L658 442" fill="none" stroke="#1dd9ff" stroke-width="12"/>
+    <path d="M565 477 L600 522 L635 477" fill="none" stroke="#1dd9ff" stroke-width="10"/>
+  </g>
+
+  <!-- torso -->
+  <g stroke="#dce6ff" stroke-width="7" stroke-linejoin="round">
+    <polygon points="530,560 670,560 715,680 600,820 485,680" fill="url(#steel)"/>
+    <polygon points="570,560 630,560 650,680 600,765 550,680" fill="url(#cyan)" stroke="#9ef2ff"/>
+    <path d="M525 610 L675 610" stroke="#94c2ff"/>
+    <path d="M510 650 L690 650" stroke="#94c2ff"/>
+    <path d="M498 695 L702 695" stroke="#94c2ff"/>
+  </g>
+
+  <!-- arms -->
+  <g stroke="#dce6ff" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="470,610 390,675 430,760 510,700" fill="url(#steel)"/>
+    <polygon points="730,610 810,675 770,760 690,700" fill="url(#steel)"/>
+    <polygon points="365,725 290,770 330,845 408,790" fill="url(#steel)"/>
+    <polygon points="835,725 910,770 870,845 792,790" fill="url(#steel)"/>
+
+    <path d="M265 855 L215 905 L260 925 L308 870 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+    <path d="M310 865 L275 935 L330 945 L355 885 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+    <path d="M350 860 L345 940 L400 920 L392 870 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+
+    <path d="M935 855 L985 905 L940 925 L892 870 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+    <path d="M890 865 L925 935 L870 945 L845 885 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+    <path d="M850 860 L855 940 L800 920 L808 870 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+  </g>
+
+  <!-- legs -->
+  <g stroke="#dce6ff" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="540,800 495,930 555,965 590,835" fill="url(#steel)"/>
+    <polygon points="660,800 705,930 645,965 610,835" fill="url(#steel)"/>
+    <path d="M488 965 L435 1030 L490 1045 L545 985 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+    <path d="M712 965 L765 1030 L710 1045 L655 985 Z" fill="url(#cyan)" stroke="#aaf8ff"/>
+  </g>
+
+  <!-- segmented tail -->
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <path d="M600 820 C610 875, 610 930, 585 980 C555 1038, 505 1075, 450 1100"
+          fill="none" stroke="#dce6ff" stroke-width="18"/>
+    <path d="M600 820 C610 875, 610 930, 585 980 C555 1038, 505 1075, 450 1100"
+          fill="none" stroke="#8fa0c4" stroke-width="9"/>
+    <circle cx="580" cy="1000" r="9" fill="#fff3a0"/>
+    <circle cx="548" cy="1040" r="9" fill="#fff3a0"/>
+    <circle cx="510" cy="1072" r="9" fill="#fff3a0"/>
+    <circle cx="470" cy="1092" r="9" fill="#fff3a0"/>
+    <path d="M415 1098 L360 1125 L422 1140 Z" fill="url(#cyan)" stroke="#abf8ff" stroke-width="6"/>
+    <circle cx="438" cy="1115" r="15" fill="#ffe66a" stroke="#fffbd0" stroke-width="5" filter="url(#glow)"/>
+    <path d="M462 1115 L515 1095 L488 1148 Z" fill="url(#cyan)" stroke="#abf8ff" stroke-width="6"/>
+  </g>
+
+  <!-- drones / projectiles -->
+  <g filter="url(#glow)">
+    <path d="M180 180 l28 -14 l-14 34 l14 34 l-28 -14 l-28 14 l14 -34 l-14 -34 z" fill="#d8b8ff" opacity="0.7"/>
+    <path d="M300 120 l28 -14 l-14 34 l14 34 l-28 -14 l-28 14 l14 -34 l-14 -34 z" fill="#d8b8ff" opacity="0.7"/>
+    <path d="M385 210 l28 -14 l-14 34 l14 34 l-28 -14 l-28 14 l14 -34 l-14 -34 z" fill="#d8b8ff" opacity="0.7"/>
+    <path d="M980 300 l28 -14 l-14 34 l14 34 l-28 -14 l-28 14 l14 -34 l-14 -34 z" fill="#85ffcf" opacity="0.8"/>
+    <path d="M1045 465 l28 -14 l-14 34 l14 34 l-28 -14 l-28 14 l14 -34 l-14 -34 z" fill="#85ffcf" opacity="0.8"/>
+  </g>
+
+  <!-- beam lines -->
+  <g stroke="#67ecff" stroke-width="12" opacity="0.75" filter="url(#glow)">
+    <path d="M252 317 L208 175"/>
+    <path d="M355 286 L316 125"/>
+    <path d="M428 268 L415 200"/>
+    <path d="M950 372 L1045 300"/>
+    <path d="M1005 548 L1082 480"/>
+  </g>
+</svg>

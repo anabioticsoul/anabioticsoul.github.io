@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles, Stars, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 import Faifnir from './Fafnir'
-
+import currentMarkerUrl from '../public/map-marker.svg'
 const SECTION_DEFS = [
   {
     id: 'about',
@@ -460,6 +460,84 @@ function MapLabels({ sections, mode, activeSection }) {
   )
 }
 
+
+function CurrentPositionMarker({ shipRef, mode }) {
+  const { camera } = useThree()
+  const markerRef = useRef()
+  const ringRef = useRef()
+  const texture = useMemo(() => new THREE.TextureLoader().load(currentMarkerUrl), [])
+
+  useEffect(() => {
+    if (!texture) return
+    if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace
+    texture.needsUpdate = true
+  }, [texture])
+
+  useFrame((state) => {
+    if (!markerRef.current || !ringRef.current || !shipRef.current) return
+
+    const visible = mode === 'map'
+    markerRef.current.visible = visible
+    ringRef.current.visible = visible
+    if (!visible) return
+
+    const shipPos = shipRef.current.position
+    const camHeight = Math.max(80, camera.position.y)
+    const size = clamp(camHeight * 0.095, 20, 42)
+
+    markerRef.current.position.set(shipPos.x, 22, shipPos.z)
+    ringRef.current.position.set(shipPos.x, 1.2, shipPos.z)
+
+    markerRef.current.lookAt(camera.position)
+
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * 2.6) * 0.05
+    markerRef.current.scale.set(size * pulse, size * pulse, 1)
+
+    const ringScale = clamp(size * 0.18, 4.2, 7.2) * (1 + Math.sin(state.clock.elapsedTime * 3.2) * 0.08)
+    ringRef.current.scale.set(ringScale, ringScale, ringScale)
+    if (ringRef.current.material) {
+      ringRef.current.material.opacity = 0.2 + (Math.sin(state.clock.elapsedTime * 3.2) + 1) * 0.06
+    }
+  })
+
+  return (
+    <group>
+      <mesh
+        ref={ringRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={false}
+        frustumCulled={false}
+        renderOrder={58}
+      >
+        <ringGeometry args={[1.6, 2.3, 48]} />
+        <meshBasicMaterial
+          color="#f3f7ff"
+          transparent
+          opacity={0.5}
+          depthTest={false}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+
+      <mesh ref={markerRef} visible={false} frustumCulled={false} renderOrder={60}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial
+          map={texture}
+          color="#ffffff"
+          transparent
+          alphaTest={0.02}
+          opacity={1}
+          side={THREE.DoubleSide}
+          depthTest={false}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  )
+}
+
 function SceneController({
   setHud,
   activeSection,
@@ -709,9 +787,10 @@ function SceneController({
       const map = mapZoom.current
       map.zoom = lerp(map.zoom, map.targetZoom, 0.12)
 
-      const mapPos = new THREE.Vector3(0, map.zoom, -112)
+      const shipPos = ship.current.position
+      const mapPos = new THREE.Vector3(shipPos.x, map.zoom, shipPos.z)
       camera.position.lerp(mapPos, 0.08)
-      camera.lookAt(0, 0, -108)
+      camera.lookAt(shipPos.x, 0, shipPos.z)
       setBoostLevel((prev) => lerp(prev, 0, 0.12))
       cameraControl.current.mode = 'follow'
 
@@ -865,6 +944,7 @@ function SceneController({
         ))}
 
       <MapLabels sections={SECTION_DEFS} mode={mode} activeSection={activeSection} />
+      <CurrentPositionMarker shipRef={ship} mode={mode} />
     </group>
   )
 }
@@ -942,7 +1022,7 @@ function IntroOverlay({ phase, reveal }) {
   )
 }
 
-function HUD({ hud, activeSection, mode, phase, boostLevel }) {
+function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
@@ -959,15 +1039,17 @@ function HUD({ hud, activeSection, mode, phase, boostLevel }) {
         <div className="muted">{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
       </div>
 
-      <div className="panel panel-main left-mid">
-        <div className="tagline">Current Sector</div>
-        <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
-        <p className="body-copy">
-          {phase !== 'play'
-            ? 'Stand by while the world loads and the navigation map unfolds.'
-            : hud.sectorHint}
-        </p>
-      </div>
+      {!activeSection && (
+        <div className="panel panel-main left-mid">
+          <div className="tagline">Current Sector</div>
+          <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
+          <p className="body-copy">
+            {phase !== 'play'
+              ? 'Stand by while the world loads and the navigation map unfolds.'
+              : hud.sectorHint}
+          </p>
+        </div>
+      )}
 
       <SectorPanel activeSection={activeSection} mode={mode} />
 
@@ -989,13 +1071,15 @@ function HUD({ hud, activeSection, mode, phase, boostLevel }) {
         </div>
       </div>
 
-      <div className="panel panel-main bottom-left">
-        <div className="tagline">Concept</div>
-        <p className="body-copy">
-          A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
-          The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
-        </p>
-      </div>
+      {!hasInteracted && (
+        <div className="panel panel-main bottom-left">
+          <div className="tagline">Concept</div>
+          <p className="body-copy">
+            A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
+            The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
+          </p>
+        </div>
+      )}
 
       {phase === 'play' && (
         <div className={`crosshair ${boostLevel > 0.2 ? 'crosshair-boost' : ''}`}>
@@ -1022,12 +1106,16 @@ export default function App() {
   const [reveal, setReveal] = useState(0)
   const [resetTick, setResetTick] = useState(0)
   const [boostLevel, setBoostLevel] = useState(0)
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('intro'), 300)
     const t2 = setTimeout(() => setPhase('play'), 1800)
 
-    const skipToPlay = () => setPhase('play')
+    const skipToPlay = () => {
+      setHasInteracted(true)
+      setPhase('play')
+    }
     window.addEventListener('pointerdown', skipToPlay)
     window.addEventListener('keydown', skipToPlay)
 
@@ -1055,7 +1143,9 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (phase !== 'play' || e.repeat) return
+      if (e.repeat) return
+      setHasInteracted(true)
+      if (phase !== 'play') return
 
       if (e.code === 'KeyM') {
         setMode((prev) => (prev === 'flight' ? 'map' : 'flight'))
@@ -1091,7 +1181,7 @@ export default function App() {
         </Canvas>
       </div>
 
-      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} />
+      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} />
       <IntroOverlay phase={phase} reveal={reveal} />
     </div>
   )
