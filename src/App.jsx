@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles, Stars, Text, Line } from '@react-three/drei'
+import { MdEmail } from 'react-icons/md'
+import { FaGithub, FaInstagram } from 'react-icons/fa'
+import { FaXTwitter } from 'react-icons/fa6'
 import * as THREE from 'three'
 import About from './About'
 import Project from './Projects'
@@ -16,8 +19,10 @@ const SECTION_DEFS = [
     pos: [-18, 5, -55],
     eyebrow: 'Identity',
     body:
-      'Introduce yourself here with a concise mission statement, your research direction, design philosophy, or the story behind the site.',
-    cta: ['Profile', 'Timeline', 'CV'],
+      'I work on configuration security and software security, with a focus on understanding how real-world software misconfigurations arise, how they can be diagnosed, and how configuration-related risks can be reduced in practice. My research combines empirical analysis, dataset construction, and tooling for configuration troubleshooting and security-oriented software systems.',
+    cta: [
+      { label: 'GitHub', href: 'https://github.com/anabioticsoul' },
+    ],
     type: 'planet',
     color: '#6ea8ff',
     collisionRadius: 3.6,
@@ -29,8 +34,12 @@ const SECTION_DEFS = [
     pos: [18, -2, -92],
     eyebrow: 'Selected Works',
     body:
-      'Use this sector to present flagship projects, each with a short summary, links, and a small visual card system.',
-    cta: ['Featured', 'Archive', 'Source'],
+      'Repositories:\n• misconfiguration_datasets\n• BJTU-thesis-template\n• CRSExtractor',
+    cta: [
+      { label: 'misconfiguration_datasets', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
+      { label: 'BJTU-thesis-template', href: 'https://github.com/anabioticsoul/BJTU-thesis-template' },
+      { label: 'CRSExtractor', href: 'https://github.com/anabioticsoul/CRSExtractor' },
+    ],
     type: 'ringed',
     color: '#9f8cff',
     collisionRadius: 5.2,
@@ -38,12 +47,15 @@ const SECTION_DEFS = [
   {
     id: 'publications',
     title: 'PUBLICATIONS',
-    subtitle: 'Papers, datasets, talks',
+    subtitle: 'Papers',
     pos: [-14, 8, -132],
     eyebrow: 'Research Output',
-    body:
-      'List papers, datasets, talks, replication packages, and awards. This sector works especially well for an academic homepage.',
-    cta: ['Papers', 'Datasets', 'Talks'],
+    // body:
+    //   'Publications:\n• CRSExtractor: Automated configuration option read sites extraction towards IoT cloud infrastructure\n• Rethinking software misconfigurations in the real world: an empirical study and literature analysis',
+    cta: [
+      { label: 'Rethinking software misconfigurations in the real world: an empirical study and literature analysis', href: 'https://arxiv.org/abs/2412.11121' },
+      { label: 'CRSExtractor: Automated configuration option read sites extraction towards IoT cloud infrastructure', href: 'https://www.cell.com/heliyon/fulltext/S2405-8440(23)02560-4' },
+    ],
     type: 'binary',
     color: '#85d7ff',
     collisionRadius: 4,
@@ -55,8 +67,12 @@ const SECTION_DEFS = [
     pos: [15, 10, -172],
     eyebrow: 'Connect',
     body:
-      'Place your email, GitHub, social accounts, CV link, and a short invitation for collaboration here.',
-    cta: ['Email', 'GitHub', 'Links'],
+      'Feel free to reach out for research collaboration, datasets, or discussion on configuration security and software misconfigurations.',
+    cta: [
+      { label: 'Email', href: 'mailto:anabioticsoul@gmail.com' },
+      { label: 'X'},
+      { label: 'Instagram'},
+    ],
     type: 'station',
     color: '#ffd36e',
     collisionRadius: 3.2,
@@ -1018,6 +1034,27 @@ function SceneController({
   )
 }
 
+
+function ContactIcon({ label }) {
+  if (label === 'Email') {
+    return <MdEmail size={18} aria-hidden="true" />
+  }
+
+  if (label === 'GitHub') {
+    return <FaGithub size={16} aria-hidden="true" />
+  }
+
+  if (label === 'X') {
+    return <FaXTwitter size={16} aria-hidden="true" />
+  }
+
+  if (label === 'Instagram') {
+    return <FaInstagram size={16} aria-hidden="true" />
+  }
+
+  return label
+}
+
 function SectorPanel({ activeSection, mode }) {
   if (mode === 'map' && !activeSection) {
     return (
@@ -1035,16 +1072,31 @@ function SectorPanel({ activeSection, mode }) {
   if (!activeSection) return null
 
   return (
-    <div className="panel panel-main right-mid">
+    <div className="panel panel-main right-mid" style={{ pointerEvents: 'auto' }}>
       <div className="tagline">{activeSection.eyebrow}</div>
       <div className="title-md">{activeSection.title}</div>
-      <p className="body-copy">{activeSection.body}</p>
-      <div className="pills">
-        {activeSection.cta.map((label) => (
-          <span key={label} className="pill">
-            {label}
-          </span>
-        ))}
+      <p className="body-copy" style={{ whiteSpace: 'pre-line' }}>{activeSection.body}</p>
+      <div className="pills" style={{ pointerEvents: 'auto' }}>
+        {activeSection.cta.map((item) => {
+          const label = typeof item === 'string' ? item : item.label
+          const href = typeof item === 'string' ? '#' : item.href
+          const external = href && !href.startsWith('mailto:')
+          return (
+            <a
+              key={label}
+              className="pill"
+              href={href}
+              target={external ? '_blank' : undefined}
+              rel={external ? 'noreferrer' : undefined}
+              onClick={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto', cursor: 'pointer', textDecoration: 'none' }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ContactIcon label={label} />
+              </span>
+            </a>
+          )
+        })}
       </div>
     </div>
   )
