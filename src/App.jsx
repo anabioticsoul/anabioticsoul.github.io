@@ -13,12 +13,8 @@ const SECTION_DEFS = [
     pos: [-18, 5, -55],
     eyebrow: 'Identity',
     body:
-      'I work on configuration security and software security, with a focus on understanding how real-world software misconfigurations arise, how they can be diagnosed, and how configuration-related risks can be reduced in practice. My research combines empirical analysis, dataset construction, and tooling for configuration troubleshooting and security-oriented software systems.',
-    cta: [
-      { label: 'GitHub Profile', href: 'https://github.com/anabioticsoul' },
-      { label: 'Datasets', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
-      { label: 'Email', href: 'mailto:anabioticsoul@gmail.com' },
-    ],
+      'Introduce yourself here with a concise mission statement, your research direction, design philosophy, or the story behind the site.',
+    cta: ['Profile', 'Timeline', 'CV'],
     type: 'planet',
     color: '#6ea8ff',
   },
@@ -29,12 +25,8 @@ const SECTION_DEFS = [
     pos: [18, -2, -92],
     eyebrow: 'Selected Works',
     body:
-      'My projects center on real-world configuration analysis and security research. Featured work includes misconfiguration_datasets, a public collection of real-world misconfiguration cases, troubleshooting studies, and reproduced scenarios, and CRSExtractor, a tool for automated configuration option read-site extraction toward IoT cloud infrastructure.',
-    cta: [
-      { label: 'misconfiguration_datasets', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
-      { label: 'CRSExtractor', href: 'https://github.com/anabioticsoul/CRSExtractor' },
-      { label: 'GitHub', href: 'https://github.com/anabioticsoul' },
-    ],
+      'Use this sector to present flagship projects, each with a short summary, links, and a small visual card system.',
+    cta: ['Featured', 'Archive', 'Source'],
     type: 'ringed',
     color: '#9f8cff',
   },
@@ -45,12 +37,8 @@ const SECTION_DEFS = [
     pos: [-14, 8, -132],
     eyebrow: 'Research Output',
     body:
-      'My recent publications focus on software configuration analysis and empirical misconfiguration research: CRSExtractor: Automated Configuration Option Read Sites Extraction towards IoT Cloud Infrastructure; Rethinking Software Misconfigurations in the Real World: An Empirical Study and Literature Analysis; and Multi-Misconfiguration Diagnosis via Identifying Correlated Configuration Parameters.',
-    cta: [
-      { label: 'CRSExtractor', href: 'https://github.com/anabioticsoul/CRSExtractor' },
-      { label: 'Dataset Repo', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
-      { label: 'GitHub Profile', href: 'https://github.com/anabioticsoul' },
-    ],
+      'List papers, datasets, talks, replication packages, and awards. This sector works especially well for an academic homepage.',
+    cta: ['Papers', 'Datasets', 'Talks'],
     type: 'binary',
     color: '#85d7ff',
   },
@@ -61,12 +49,8 @@ const SECTION_DEFS = [
     pos: [15, 10, -172],
     eyebrow: 'Connect',
     body:
-      'Feel free to reach out for research collaboration, datasets, or discussion on configuration security and software misconfigurations. Email: anabioticsoul@gmail.com. GitHub: anabioticsoul.',
-    cta: [
-      { label: 'anabioticsoul@gmail.com', href: 'mailto:anabioticsoul@gmail.com' },
-      { label: 'GitHub', href: 'https://github.com/anabioticsoul' },
-      { label: 'Repositories', href: 'https://github.com/anabioticsoul?tab=repositories' },
-    ],
+      'Place your email, GitHub, social accounts, CV link, and a short invitation for collaboration here.',
+    cta: ['Email', 'GitHub', 'Links'],
     type: 'station',
     color: '#ffd36e',
   },
@@ -426,6 +410,7 @@ function SectionMarkers({ activeSection, reveal, mode }) {
 function MapLabels({ sections, mode, activeSection }) {
   const { camera } = useThree()
   const refs = useRef({})
+  const tempLabelPos = useMemo(() => new THREE.Vector3(), [])
 
   useFrame(() => {
     if (mode !== 'map') return
@@ -433,6 +418,10 @@ function MapLabels({ sections, mode, activeSection }) {
       const ref = refs.current[section.id]
       if (!ref) continue
       ref.quaternion.copy(camera.quaternion)
+      ref.getWorldPosition(tempLabelPos)
+      const dist = camera.position.distanceTo(tempLabelPos)
+      const scale = clamp(dist * 0.036, 4.4, 11.8)
+      ref.scale.setScalar(scale)
     }
   })
 
@@ -449,20 +438,20 @@ function MapLabels({ sections, mode, activeSection }) {
             ref={(node) => {
               refs.current[section.id] = node
             }}
-            position={[section.pos[0], section.pos[1] + 7.2, section.pos[2]]}
+            position={[section.pos[0], section.pos[1] + 10.4, section.pos[2]]}
           >
             <Text
-              fontSize={active ? 2.5 : 1.95}
+              fontSize={active ? 1.15 : 0.96}
               maxWidth={22}
               anchorX="center"
               anchorY="middle"
               color={active ? '#ffffff' : '#c7dbff'}
-              outlineWidth={0.1}
+              outlineWidth={0.16}
               outlineColor="#07101f"
               renderOrder={30}
             >
               {section.title}
-              <meshBasicMaterial depthTest={false} depthWrite={false} toneMapped={false} />
+              <meshBasicMaterial depthTest={false} depthWrite={false} toneMapped={false} fog={false} transparent={false} opacity={1} />
             </Text>
           </group>
         )
@@ -534,6 +523,11 @@ function SceneController({
     targetDistance: 12.7,
   })
 
+  const mapZoom = useRef({
+    zoom: 220,
+    targetZoom: 220,
+  })
+
   useEffect(() => {
     camera.fov = 52
     camera.updateProjectionMatrix()
@@ -585,8 +579,16 @@ function SceneController({
     }
 
     const onWheel = (e) => {
-      if (phase !== 'play' || mode !== 'flight' || resetState.current.active) return
+      if (phase !== 'play' || resetState.current.active) return
       e.preventDefault()
+
+      if (mode === 'map') {
+        const map = mapZoom.current
+        map.targetZoom = clamp(map.targetZoom + e.deltaY * 0.16, 55, 420)
+        return
+      }
+
+      if (mode !== 'flight') return
       const ctrl = cameraControl.current
       ctrl.mode = 'free'
       ctrl.targetDistance = clamp(ctrl.targetDistance + e.deltaY * 0.008, 6, 28)
@@ -635,6 +637,8 @@ function SceneController({
     cameraControl.current.targetYaw = 0
     cameraControl.current.targetPitch = 0.08
     cameraControl.current.targetDistance = 12.7
+    mapZoom.current.zoom = 220
+    mapZoom.current.targetZoom = 220
   }, [resetTick, camera, phase, setActiveSection, setBoostLevel, setMode, tempForward])
 
   useFrame((state, delta) => {
@@ -702,8 +706,11 @@ function SceneController({
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.08, 0.06)
       ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.06)
 
-      const mapPos = new THREE.Vector3(0, 86, -108)
-      camera.position.lerp(mapPos, 0.06)
+      const map = mapZoom.current
+      map.zoom = lerp(map.zoom, map.targetZoom, 0.12)
+
+      const mapPos = new THREE.Vector3(0, map.zoom, -112)
+      camera.position.lerp(mapPos, 0.08)
       camera.lookAt(0, 0, -108)
       setBoostLevel((prev) => lerp(prev, 0, 0.12))
       cameraControl.current.mode = 'follow'
@@ -715,7 +722,7 @@ function SceneController({
         sector: activeSection ? activeSection.title : 'MAP',
         sectorHint: activeSection
           ? activeSection.body
-          : 'Map mode enabled. Press M to return to flight. Press R to reset ship position.',
+          : 'Map mode enabled. Press M to return to flight. Use the mouse wheel to zoom the map. Press R to reset ship position.',
       }))
       return
     }
@@ -884,22 +891,11 @@ function SectorPanel({ activeSection, mode }) {
       <div className="title-md">{activeSection.title}</div>
       <p className="body-copy">{activeSection.body}</p>
       <div className="pills">
-        {activeSection.cta.map((item) => {
-          const href = typeof item === 'string' ? '#' : item.href
-          const label = typeof item === 'string' ? item : item.label
-          const isExternal = href && !href.startsWith('mailto:')
-          return (
-            <a
-              key={label}
-              className="pill"
-              href={href}
-              target={isExternal ? '_blank' : undefined}
-              rel={isExternal ? 'noreferrer' : undefined}
-            >
-              {label}
-            </a>
-          )
-        })}
+        {activeSection.cta.map((label) => (
+          <span key={label} className="pill">
+            {label}
+          </span>
+        ))}
       </div>
     </div>
   )
@@ -946,7 +942,7 @@ function IntroOverlay({ phase, reveal }) {
   )
 }
 
-function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
+function HUD({ hud, activeSection, mode, phase, boostLevel }) {
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
@@ -963,17 +959,15 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
         <div className="muted">{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
       </div>
 
-      {!activeSection && (
-        <div className="panel panel-main left-mid">
-          <div className="tagline">Current Sector</div>
-          <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
-          <p className="body-copy">
-            {phase !== 'play'
-              ? 'Stand by while the world loads and the navigation map unfolds.'
-              : hud.sectorHint}
-          </p>
-        </div>
-      )}
+      <div className="panel panel-main left-mid">
+        <div className="tagline">Current Sector</div>
+        <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
+        <p className="body-copy">
+          {phase !== 'play'
+            ? 'Stand by while the world loads and the navigation map unfolds.'
+            : hud.sectorHint}
+        </p>
+      </div>
 
       <SectorPanel activeSection={activeSection} mode={mode} />
 
@@ -995,15 +989,13 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
         </div>
       </div>
 
-      {!hasInteracted && (
-        <div className="panel panel-main bottom-left">
-          <div className="tagline">Concept</div>
-          <p className="body-copy">
-            A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
-            The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
-          </p>
-        </div>
-      )}
+      <div className="panel panel-main bottom-left">
+        <div className="tagline">Concept</div>
+        <p className="body-copy">
+          A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
+          The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
+        </p>
+      </div>
 
       {phase === 'play' && (
         <div className={`crosshair ${boostLevel > 0.2 ? 'crosshair-boost' : ''}`}>
@@ -1030,16 +1022,12 @@ export default function App() {
   const [reveal, setReveal] = useState(0)
   const [resetTick, setResetTick] = useState(0)
   const [boostLevel, setBoostLevel] = useState(0)
-  const [hasInteracted, setHasInteracted] = useState(false)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('intro'), 300)
     const t2 = setTimeout(() => setPhase('play'), 1800)
 
-    const skipToPlay = () => {
-      setHasInteracted(true)
-      setPhase('play')
-    }
+    const skipToPlay = () => setPhase('play')
     window.addEventListener('pointerdown', skipToPlay)
     window.addEventListener('keydown', skipToPlay)
 
@@ -1067,9 +1055,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.repeat) return
-      setHasInteracted(true)
-      if (phase !== 'play') return
+      if (phase !== 'play' || e.repeat) return
 
       if (e.code === 'KeyM') {
         setMode((prev) => (prev === 'flight' ? 'map' : 'flight'))
@@ -1105,7 +1091,7 @@ export default function App() {
         </Canvas>
       </div>
 
-      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} />
+      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} />
       <IntroOverlay phase={phase} reveal={reveal} />
     </div>
   )
