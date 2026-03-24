@@ -15,7 +15,7 @@ const SECTION_DEFS = [
   {
     id: 'about',
     title: 'ABOUT',
-    subtitle: 'Identity / Research / Story',
+    subtitle: 'Identity and Research Focus',
     pos: [-18, 5, -55],
     eyebrow: 'Identity',
     body:
@@ -30,9 +30,9 @@ const SECTION_DEFS = [
   {
     id: 'projects',
     title: 'PROJECTS',
-    subtitle: 'Selected works and prototypes',
+    subtitle: 'Repos of Research and Prototypes',
     pos: [18, -2, -92],
-    eyebrow: 'Selected Works',
+    eyebrow: 'Repos',
     body:
       '',
     cta: [
@@ -49,9 +49,9 @@ const SECTION_DEFS = [
     title: 'PUBLICATIONS',
     subtitle: 'Papers',
     pos: [-14, 8, -132],
-    eyebrow: 'Research Output',
-    // body:
-    //   'Publications:\n• CRSExtractor: Automated configuration option read sites extraction towards IoT cloud infrastructure\n• Rethinking software misconfigurations in the real world: an empirical study and literature analysis',
+    eyebrow: 'Research',
+    body:
+      '',
     cta: [
       { label: 'Rethinking software misconfigurations in the real world: an empirical study and literature analysis', href: 'https://arxiv.org/abs/2412.11121' },
       { label: 'CRSExtractor: Automated configuration option read sites extraction towards IoT cloud infrastructure', href: 'https://www.cell.com/heliyon/fulltext/S2405-8440(23)02560-4' },
@@ -63,7 +63,7 @@ const SECTION_DEFS = [
   {
     id: 'contact',
     title: 'CONTACT',
-    subtitle: 'Mail / GitHub / Social links',
+    subtitle: 'Social links',
     pos: [15, 10, -172],
     eyebrow: 'Connect',
     body:
