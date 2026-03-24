@@ -236,7 +236,6 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
   const bottomOffset = isShort ? 12 : 18
   const isNarrow = width <= 390
   const isTiny = width <= 360
-  const boostBottom = bottomOffset + actionHeight * 2 + (isNarrow ? 26 : 18)
   const dpadFontSize = isTiny ? '0.62rem' : isCompact ? '0.68rem' : '0.72rem'
   const topButtonHeight = isTiny ? 32 : isNarrow ? 34 : 36
   const topButtonFontSize = isTiny ? '0.6rem' : isNarrow ? '0.64rem' : '0.68rem'
@@ -307,30 +306,22 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
           <div
             style={{
               position: 'absolute',
-              left: '50%',
-              bottom: boostBottom,
-              transform: 'translateX(-50%)',
-              pointerEvents: 'auto',
-            }}
-          >
-            <button style={{ ...buttonBase, width: compactBoostWidth, height: compactBoostHeight, fontSize: isTiny ? '0.74rem' : '0.84rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>
-              BOOST
-            </button>
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
               right: 12,
               bottom: bottomOffset,
-              display: 'grid',
-              gridTemplateColumns: `${compactActionWidth}px`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
               gap: isTiny ? 6 : 8,
               pointerEvents: 'auto',
             }}
           >
             <button style={{ ...buttonBase, width: compactActionWidth, height: compactActionHeight, fontSize: isTiny ? '0.74rem' : '0.82rem' }} onPointerDown={setPress('up', true)} onPointerUp={setPress('up', false)} onPointerCancel={setPress('up', false)} onPointerLeave={setPress('up', false)}>UP</button>
-            <button style={{ ...buttonBase, width: compactActionWidth, height: compactActionHeight, fontSize: isTiny ? '0.74rem' : '0.82rem' }} onPointerDown={setPress('down', true)} onPointerUp={setPress('down', false)} onPointerCancel={setPress('down', false)} onPointerLeave={setPress('down', false)}>DOWN</button>
+            <div style={{ display: 'flex', gap: isTiny ? 6 : 8 }}>
+              <button style={{ ...buttonBase, width: compactBoostWidth, height: compactBoostHeight, fontSize: isTiny ? '0.68rem' : '0.78rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>
+                BOOST
+              </button>
+              <button style={{ ...buttonBase, width: compactActionWidth, height: compactActionHeight, fontSize: isTiny ? '0.74rem' : '0.82rem' }} onPointerDown={setPress('down', true)} onPointerUp={setPress('down', false)} onPointerCancel={setPress('down', false)} onPointerLeave={setPress('down', false)}>DOWN</button>
+            </div>
           </div>
         </>
       )}
@@ -350,6 +341,11 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
   const boostTop = mobileTouch ? (isTinyMobile ? 180 : isShort ? 204 : 224) : undefined
   const showStatsPanel = !(mobileTouch && activeSection)
   const sharedMobileWidth = 'calc(100vw - 24px)'
+  const statsPanelWidth = mobileTouch
+    ? (isTinyMobile ? 'min(220px, calc(100vw - 24px))' : 'min(248px, calc(100vw - 24px))')
+    : isCompact
+      ? 'calc(100vw - 24px)'
+      : undefined
 
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
@@ -404,18 +400,18 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
           className="panel panel-main bottom-right"
           style={{
             position: 'absolute',
-            left: mobileTouch ? 12 : 'auto',
+            left: mobileTouch ? 'auto' : 'auto',
             right: isMobile ? 12 : 24,
             top: boostTop,
             bottom: mobileTouch ? 'auto' : 24,
             padding: mobileTouch ? (isTinyMobile ? '6px 9px' : isNarrowMobile ? '7px 10px' : '8px 11px') : isCompact ? '9px 11px' : '10px 14px',
             fontSize: isCompact ? '0.74rem' : '0.85rem',
             zIndex: 12,
-            width: mobileTouch ? sharedMobileWidth : isCompact ? 'calc(100vw - 24px)' : undefined,
+            width: statsPanelWidth,
             maxWidth: mobileTouch ? 'none' : isMobile ? 320 : undefined,
           }}
         >
-          <div className="grid-stats">
+          <div className="grid-stats" style={{ gap: mobileTouch ? (isTinyMobile ? '4px 14px' : '5px 16px') : undefined }}>
             <div className="label" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.5rem' : '0.56rem') : isCompact ? '0.62rem' : '0.7rem' }}>Boost</div>
             <div style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.68rem' : '0.74rem') : isCompact ? '0.76rem' : undefined }}>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
             <div className="label" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.5rem' : '0.56rem') : isCompact ? '0.62rem' : '0.7rem' }}>Position</div>

@@ -365,8 +365,8 @@ export default function SceneController({
     []
   )
 
-  const startShipPos = useMemo(() => new THREE.Vector3(0, -1, 12), [])
-  const startCamPos = useMemo(() => new THREE.Vector3(0, 3, 32), [])
+  const startShipPos = useMemo(() => new THREE.Vector3(0, 2.2, 12), [])
+  const startCamPos = useMemo(() => new THREE.Vector3(0, 6.2, 30), [])
   const shipCollisionRadius = 2.4
 
   const resetState = useRef({
@@ -514,18 +514,18 @@ export default function SceneController({
     if (!ship.current) return
 
     if (phase === 'loading') {
-      camera.position.lerp(new THREE.Vector3(0, 3, 32), 0.04)
-      camera.lookAt(0, 0, -10)
-      ship.current.position.lerp(new THREE.Vector3(0, -1, 12), 0.08)
+      camera.position.lerp(new THREE.Vector3(0, 6.2, 30), 0.04)
+      camera.lookAt(0, 6.2, -96)
+      ship.current.position.lerp(new THREE.Vector3(0, 2.2, 12), 0.08)
       setBoostLevel((prev) => lerp(prev, 0, 0.15))
       return
     }
 
     if (phase === 'intro') {
-      const introTargetPos = new THREE.Vector3(0, 12, 36 - reveal * 22)
+      const introTargetPos = new THREE.Vector3(0, 8.8, 34 - reveal * 21)
       camera.position.lerp(introTargetPos, 0.035)
-      camera.lookAt(0, 0, -80)
-      ship.current.position.lerp(new THREE.Vector3(0, -1.6, 12 - reveal * 4), 0.05)
+      camera.lookAt(0, 6.2, -100)
+      ship.current.position.lerp(new THREE.Vector3(0, 2.2, 12 - reveal * 4), 0.05)
       ship.current.rotation.x = lerp(ship.current.rotation.x, 0.04, 0.08)
       ship.current.rotation.y = lerp(ship.current.rotation.y, Math.PI, 0.08)
       setBoostLevel((prev) => lerp(prev, 0, 0.15))
@@ -737,7 +737,7 @@ export default function SceneController({
 
   return (
     <group>
-      <group ref={ship} position={[0, -1, 12]} rotation={[0.08, Math.PI, 0]}>
+      <group ref={ship} position={[0, 2.2, 12]} rotation={[0.08, Math.PI, 0]}>
         <Faifnir scale={0.2} visible={phase !== 'loading'} boostLevel={boostLevel} />
         <WarpLines active={phase === 'play' && mode === 'flight'} amount={boostLevel} />
       </group>
