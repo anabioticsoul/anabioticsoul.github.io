@@ -397,6 +397,10 @@ export default function SceneController({
     zoom: 220,
     targetZoom: 220,
   })
+  const pinchGesture = useRef({
+    active: false,
+    lastDistance: 0,
+  })
 
   useEffect(() => {
     camera.fov = 52
@@ -406,6 +410,13 @@ export default function SceneController({
   useEffect(() => {
     const el = gl.domElement
     if (!el) return
+
+    const getTouchDistance = (touches) => {
+      if (!touches || touches.length < 2) return 0
+      const dx = touches[0].clientX - touches[1].clientX
+      const dy = touches[0].clientY - touches[1].clientY
+      return Math.hypot(dx, dy)
+    }
 
     const onPointerDown = (e) => {
       if (phase !== 'play' || mode !== 'flight' || resetState.current.active) return
@@ -464,11 +475,56 @@ export default function SceneController({
       ctrl.targetDistance = clamp(ctrl.targetDistance + e.deltaY * 0.008, 6, 28)
     }
 
+    const onTouchStart = (e) => {
+      if (phase !== 'play' || resetState.current.active) return
+      if (e.touches.length < 2) return
+
+      const distance = getTouchDistance(e.touches)
+      if (distance <= 0) return
+
+      pinchGesture.current.active = true
+      pinchGesture.current.lastDistance = distance
+      e.preventDefault()
+    }
+
+    const onTouchMove = (e) => {
+      if (phase !== 'play' || resetState.current.active) return
+      if (!pinchGesture.current.active || e.touches.length < 2) return
+
+      const distance = getTouchDistance(e.touches)
+      if (distance <= 0) return
+
+      const delta = distance - pinchGesture.current.lastDistance
+      pinchGesture.current.lastDistance = distance
+
+      if (mode === 'map') {
+        const map = mapZoom.current
+        map.targetZoom = clamp(map.targetZoom - delta * 0.12, 55, 420)
+        e.preventDefault()
+        return
+      }
+
+      if (mode !== 'flight') return
+      const ctrl = cameraControl.current
+      ctrl.mode = 'free'
+      ctrl.targetDistance = clamp(ctrl.targetDistance - delta * 0.006, 6, 28)
+      e.preventDefault()
+    }
+
+    const endPinch = () => {
+      pinchGesture.current.active = false
+      pinchGesture.current.lastDistance = 0
+    }
+
     el.addEventListener('pointerdown', onPointerDown)
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', endDrag)
     window.addEventListener('pointercancel', endDrag)
     el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', endPinch)
+    el.addEventListener('touchcancel', endPinch)
 
     return () => {
       el.removeEventListener('pointerdown', onPointerDown)
@@ -476,6 +532,10 @@ export default function SceneController({
       window.removeEventListener('pointerup', endDrag)
       window.removeEventListener('pointercancel', endDrag)
       el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', endPinch)
+      el.removeEventListener('touchcancel', endPinch)
     }
   }, [gl, mode, phase])
 
