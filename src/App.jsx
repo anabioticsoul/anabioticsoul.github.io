@@ -442,36 +442,52 @@ function CelestialMarker({ item, active }) {
 
 function BootReadyBridge({ onReady, onProgress }) {
   const { active, progress } = useProgress()
-  const doneRef = useRef(false)
   const sentReadyRef = useRef(false)
-  const visualProgress = useRef(0)
+  const visualProgressRef = useRef(0)
+  const startTimeRef = useRef(typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const lastTickRef = useRef(startTimeRef.current)
 
   useEffect(() => {
+    const LINEAR_TO_99_MS = 7000
+    const FORCE_READY_MS = 12000
+    const NORMAL_RATE = 16
+    const FINISH_RATE = 65
+
     let raf = 0
 
     const tick = () => {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+      const dt = Math.max(0.001, (now - lastTickRef.current) / 1000)
+      lastTickRef.current = now
+      const elapsedMs = now - startTimeRef.current
+
       const loaderProgress = clamp(progress, 0, 100)
-      const readinessProgress = doneRef.current ? 100 : loaderProgress * 0.9
-      visualProgress.current = lerp(visualProgress.current, readinessProgress, doneRef.current ? 0.18 : 0.12)
 
-      if (loaderProgress >= 100 && !active && !doneRef.current && visualProgress.current >= 89.4) {
-        doneRef.current = true
+      // 进度条视觉值线性走向 99%，避免突然冲到 99。
+      const linearTarget99 = clamp((elapsedMs / LINEAR_TO_99_MS) * 99, 1, 99)
+      const loaderTarget99 = clamp(loaderProgress * 0.99, 1, 99)
+      const target99 = Math.max(linearTarget99, loaderTarget99 * 0.82)
+
+      const shouldFinish = (loaderProgress >= 100 && !active) || elapsedMs >= FORCE_READY_MS
+
+      if (shouldFinish) {
+        visualProgressRef.current = Math.min(100, visualProgressRef.current + FINISH_RATE * dt)
+      } else {
+        const next = Math.min(target99, visualProgressRef.current + NORMAL_RATE * dt)
+        visualProgressRef.current = Math.max(1, next)
       }
 
-      if (doneRef.current) {
-        visualProgress.current = lerp(visualProgress.current, 100, 0.16)
-        if (visualProgress.current >= 99.7) {
-          visualProgress.current = 100
-          onProgress?.(100)
-          if (!sentReadyRef.current) {
-            sentReadyRef.current = true
-            onReady?.()
-          }
-          return
+      if (visualProgressRef.current >= 99.95) {
+        visualProgressRef.current = 100
+        onProgress?.(100)
+        if (!sentReadyRef.current) {
+          sentReadyRef.current = true
+          onReady?.()
         }
+        return
       }
 
-      onProgress?.(visualProgress.current)
+      onProgress?.(Math.max(1, visualProgressRef.current))
       raf = requestAnimationFrame(tick)
     }
 
@@ -1235,7 +1251,7 @@ function IntroOverlay({ phase, reveal, loadingProgress }) {
 
   const loading = phase === 'loading'
   const introPercent = Math.round(reveal * 100)
-  const progressValue = loading ? Math.round(loadingProgress) : introPercent
+  const progressValue = loading ? Math.min(90, Math.round(loadingProgress)) : introPercent
 
   return (
     <div className="overlay" style={{ pointerEvents: 'none' }}>
@@ -1315,15 +1331,24 @@ function ControlsPanel({ show }) {
   const { isMobile, isCompact } = useViewportInfo()
   if (!show) return null
   return (
-    <div className="panel panel-main top-left" style={{ position: 'absolute', top: isMobile ? 84 : 104, left: isMobile ? 12 : 24, maxWidth: isCompact ? 'calc(100vw - 24px)' : 280, zIndex: 13 }}>
+    <div
+      className="panel panel-main top-left"
+      style={{
+        position: 'absolute',
+        top: isMobile ? 82 : 104,
+        left: isMobile ? 12 : 24,
+        right: isMobile ? 12 : 'auto',
+        maxWidth: isMobile ? 'none' : isCompact ? 'calc(100vw - 24px)' : 280,
+        zIndex: 13,
+      }}
+    >
       <div className="tagline">Controls (Press H to hide)</div>
-      <div className="body-copy" style={{ fontSize: isCompact ? '0.75rem' : '0.8rem', lineHeight: 1.4 }}>
+      <div className="body-copy" style={{ fontSize: isCompact ? '0.72rem' : '0.8rem', lineHeight: 1.4 }}>
         <strong>W</strong> / ↑ thrust · <strong>S</strong> / ↓ brake · <strong>A,D</strong> turn · <strong>Space</strong> / <strong>Ctrl</strong> pitch · <strong>Shift</strong> boost · <strong>M</strong> map · <strong>R</strong> reset
       </div>
     </div>
   )
 }
-
 
 function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteracted, setShowControls, setInput }) {
   const { isMobile, isCompact, isShort, isTouch } = useViewportInfo()
@@ -1364,9 +1389,12 @@ function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteract
     letterSpacing: '0.08em',
   }
 
-  const dpadSize = isCompact ? 56 : isMobile ? 62 : 68
-  const actionWidth = isCompact ? 76 : 88
-  const actionHeight = isCompact ? 56 : 64
+  const dpadSize = isCompact ? 54 : isMobile ? 60 : 66
+  const actionWidth = isCompact ? 72 : 82
+  const actionHeight = isCompact ? 54 : 60
+  const boostWidth = isCompact ? 92 : 108
+  const boostHeight = isCompact ? 58 : 66
+  const bottomOffset = isShort ? 12 : 18
 
   return (
     <div
@@ -1405,34 +1433,51 @@ function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteract
             style={{
               position: 'absolute',
               left: 12,
-              bottom: isShort ? 12 : 18,
+              bottom: bottomOffset,
               display: 'grid',
               gridTemplateColumns: `${dpadSize}px ${dpadSize}px ${dpadSize}px`,
-              gridTemplateRows: `${dpadSize}px ${dpadSize}px`,
+              gridTemplateRows: `${dpadSize}px ${dpadSize}px ${dpadSize}px`,
               gap: 8,
               pointerEvents: 'auto',
             }}
           >
             <div />
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('forward', true)} onPointerUp={setPress('forward', false)} onPointerCancel={setPress('forward', false)} onPointerLeave={setPress('forward', false)}>↑</button>
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '0.92rem' }} onPointerDown={setPress('up', true)} onPointerUp={setPress('up', false)} onPointerCancel={setPress('up', false)} onPointerLeave={setPress('up', false)}>UP</button>
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('left', true)} onPointerUp={setPress('left', false)} onPointerCancel={setPress('left', false)} onPointerLeave={setPress('left', false)}>←</button>
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('back', true)} onPointerUp={setPress('back', false)} onPointerCancel={setPress('back', false)} onPointerLeave={setPress('back', false)}>↓</button>
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.2rem' }} onPointerDown={setPress('right', true)} onPointerUp={setPress('right', false)} onPointerCancel={setPress('right', false)} onPointerLeave={setPress('right', false)}>→</button>
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.15rem' }} onPointerDown={setPress('forward', true)} onPointerUp={setPress('forward', false)} onPointerCancel={setPress('forward', false)} onPointerLeave={setPress('forward', false)}>↑</button>
+            <div />
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.15rem' }} onPointerDown={setPress('left', true)} onPointerUp={setPress('left', false)} onPointerCancel={setPress('left', false)} onPointerLeave={setPress('left', false)}>←</button>
+            <div />
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.15rem' }} onPointerDown={setPress('right', true)} onPointerUp={setPress('right', false)} onPointerCancel={setPress('right', false)} onPointerLeave={setPress('right', false)}>→</button>
+            <div />
+            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: '1.15rem' }} onPointerDown={setPress('back', true)} onPointerUp={setPress('back', false)} onPointerCancel={setPress('back', false)} onPointerLeave={setPress('back', false)}>↓</button>
+            <div />
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              bottom: bottomOffset + (isCompact ? 2 : 4),
+              transform: 'translateX(-50%)',
+              pointerEvents: 'auto',
+            }}
+          >
+            <button style={{ ...buttonBase, width: boostWidth, height: boostHeight, fontSize: '0.84rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>
+              BOOST
+            </button>
           </div>
 
           <div
             style={{
               position: 'absolute',
               right: 12,
-              bottom: isShort ? 12 : 18,
+              bottom: bottomOffset,
               display: 'grid',
               gridTemplateColumns: `${actionWidth}px`,
               gap: 8,
               pointerEvents: 'auto',
             }}
           >
-            <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.84rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>BOOST</button>
+            <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.82rem' }} onPointerDown={setPress('up', true)} onPointerUp={setPress('up', false)} onPointerCancel={setPress('up', false)} onPointerLeave={setPress('up', false)}>UP</button>
             <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.82rem' }} onPointerDown={setPress('down', true)} onPointerUp={setPress('down', false)} onPointerCancel={setPress('down', false)} onPointerLeave={setPress('down', false)}>DOWN</button>
           </div>
         </>
@@ -1442,23 +1487,29 @@ function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteract
 }
 
 function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showControls, isShipMoving }) {
-  const { isMobile, isCompact, isShort, isTouch } = useViewportInfo()
+  const { isMobile, isCompact, isTouch } = useViewportInfo()
+
+  const mobileTouch = isMobile && isTouch
+  const currentBottom = mobileTouch ? 252 : isMobile ? 12 : 24
+  const boostBottom = mobileTouch ? 156 : isMobile ? 12 : 24
+  const sharedMobileWidth = 'calc(100vw - 24px)'
+
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
       <div className="speed-lines" style={{ opacity: Math.min(1, boostLevel) }} />
 
-      <div className="panel panel-compact top-left" style={{ left: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 180 : undefined }}>
-        <div className="tagline">DRYTRON SATELLAR</div>
-        <div className="title-sm">ELUNERAS</div>
+      <div className="panel panel-compact top-left" style={{ left: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 170 : 180 }}>
+        <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>DRYTRON SATELLAR</div>
+        <div className="title-sm" style={{ fontSize: isCompact ? '0.9rem' : undefined }}>ELUNERAS</div>
       </div>
 
       <ControlsPanel show={showControls && !isShipMoving} />
 
-      <div className="panel panel-compact top-right" style={{ right: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined }}>
-        <div className="tagline">{mode === 'map' ? 'Mode' : 'Velocity'}</div>
-        <div className="kv">{mode === 'map' ? 'MAP' : hud.speed}</div>
-        <div className="muted">{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
+      <div className="panel panel-compact top-right" style={{ right: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 106 : undefined }}>
+        <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>{mode === 'map' ? 'Mode' : 'Velocity'}</div>
+        <div className="kv" style={{ fontSize: isCompact ? '1rem' : undefined }}>{mode === 'map' ? 'MAP' : hud.speed}</div>
+        <div className="muted" style={{ fontSize: isCompact ? '0.68rem' : undefined }}>{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
       </div>
 
       {!activeSection && (
@@ -1467,17 +1518,18 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
           style={{
             position: 'absolute',
             left: isMobile ? 12 : 24,
-            bottom: isMobile ? (isTouch ? 150 : 12) : 24,
-            width: isCompact ? 'calc(100vw - 24px)' : isMobile ? 'min(360px, calc(100vw - 24px))' : 'min(300px, calc(100vw - 420px))',
-            padding: isCompact ? '12px 14px' : '14px 16px',
+            right: mobileTouch ? 12 : 'auto',
+            bottom: currentBottom,
+            width: isCompact ? sharedMobileWidth : isMobile ? 'min(360px, calc(100vw - 24px))' : 'min(300px, calc(100vw - 420px))',
+            padding: isCompact ? '10px 12px' : '14px 16px',
             zIndex: 12,
           }}
         >
-          <div className="tagline">Current Sector</div>
-          <div className="title-sm" style={{ fontSize: '1rem', marginBottom: 6 }}>
+          <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>Current Sector</div>
+          <div className="title-sm" style={{ fontSize: isCompact ? '0.92rem' : '1rem', marginBottom: 6 }}>
             {phase !== 'play' ? 'INTRO' : hud.sector}
           </div>
-          <p className="body-copy" style={{ fontSize: '0.88rem', lineHeight: 1.45, margin: 0 }}>
+          <p className="body-copy" style={{ fontSize: isCompact ? '0.78rem' : '0.88rem', lineHeight: 1.45, margin: 0 }}>
             {phase !== 'play'
               ? 'Stand by while the world loads and the navigation map unfolds.'
               : hud.sectorHint}
@@ -1491,20 +1543,21 @@ function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showC
         className="panel panel-main bottom-right"
         style={{
           position: 'absolute',
+          left: mobileTouch ? 12 : 'auto',
           right: isMobile ? 12 : 24,
-          bottom: isMobile ? (isTouch ? 150 : 12) : 24,
-          padding: isCompact ? '10px 12px' : '10px 14px',
-          fontSize: isCompact ? '0.8rem' : '0.85rem',
+          bottom: boostBottom,
+          padding: isCompact ? '9px 11px' : '10px 14px',
+          fontSize: isCompact ? '0.74rem' : '0.85rem',
           zIndex: 12,
-          width: isCompact ? 'calc(100vw - 24px)' : undefined,
+          width: mobileTouch ? sharedMobileWidth : isCompact ? 'calc(100vw - 24px)' : undefined,
           maxWidth: isMobile ? 320 : undefined,
         }}
       >
         <div className="grid-stats">
-          <div className="label" style={{ fontSize: '0.7rem' }}>Boost</div>
-          <div>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
-          <div className="label" style={{ fontSize: '0.7rem' }}>Position</div>
-          <div style={{ fontSize: '0.8rem' }}>{hud.position}</div>
+          <div className="label" style={{ fontSize: isCompact ? '0.62rem' : '0.7rem' }}>Boost</div>
+          <div style={{ fontSize: isCompact ? '0.76rem' : undefined }}>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
+          <div className="label" style={{ fontSize: isCompact ? '0.62rem' : '0.7rem' }}>Position</div>
+          <div style={{ fontSize: isCompact ? '0.72rem' : '0.8rem' }}>{hud.position}</div>
         </div>
       </div>
 
@@ -1658,7 +1711,7 @@ export default function App() {
       <div
         className="canvas-wrap"
         style={{
-          opacity: bootReady ? 1 : 0,
+          opacity: phase === 'play' ? 1 : 0,
           transition: 'opacity 300ms ease',
         }}
       >
