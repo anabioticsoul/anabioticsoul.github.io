@@ -98,6 +98,7 @@ Referenced assets include:
 - **Need some space?** by **Loïc Norgeot**
 - **Planet Of Phoenix** by **ARCTIC WOLVES™**
 - **Nebula skybox 16k** by **Jungle Jim**
+- **Halo Ring** by **Inditrion Dradnon**
 
 Please check the original Sketchfab pages for license details and attribution requirements before reuse.
 
@@ -109,6 +110,7 @@ Special thanks to the creators who shared their 3D assets publicly and made this
 - Loïc Norgeot  
 - ARCTIC WOLVES™  
 - Jungle Jim  
+- Inditrion Dradnon
 
 Their work greatly enriched the visual atmosphere of this site.
 
