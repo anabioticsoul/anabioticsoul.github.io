@@ -17,7 +17,6 @@ export default function About({ active }) {
       const boosted = mats.map((mat) => {
         const m = mat.clone()
 
-        // Push the planet toward a warm red glow while preserving texture detail.
         if (m.color) {
           m.color.multiplyScalar(1.08)
           m.color.lerp(new THREE.Color('#ff5f4d'), 0.02)

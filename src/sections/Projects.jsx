@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
-export default function Project({ active }) {
+export default function Projects({ active }) {
   const ref = useRef()
   const { scene } = useGLTF('/models/dalaran_fantasyislandchallenge.glb')
 
@@ -38,7 +38,6 @@ export default function Project({ active }) {
       obj.material = Array.isArray(obj.material) ? boosted : boosted[0]
     })
 
-    // Normalize imported world-scale assets: center at origin and scale to marker size.
     const box = new THREE.Box3().setFromObject(cloned)
     const sphere = new THREE.Sphere()
     const center = new THREE.Vector3()
