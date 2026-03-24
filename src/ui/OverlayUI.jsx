@@ -24,13 +24,26 @@ function ContactIcon({ label }) {
   return label
 }
 
-function SectorPanel({ activeSection, mode }) {
+function SectorPanel({ activeSection, mode, mobileTouch = false, isCompact = false, isShort = false }) {
+  const mobilePanelStyle = mobileTouch
+    ? {
+        left: 12,
+        right: 12,
+        top: isShort ? 84 : 96,
+        bottom: 'auto',
+        width: 'auto',
+        padding: isCompact ? '11px 12px' : '13px 14px',
+        maxHeight: isShort ? '38vh' : '44vh',
+        overflowY: 'auto',
+      }
+    : undefined
+
   if (mode === 'map' && !activeSection) {
     return (
-      <div className="panel panel-main right-mid">
-        <div className="tagline">Star Map</div>
-        <div className="title-md">Sector Overview</div>
-        <p className="body-copy">
+      <div className="panel panel-main right-mid" style={mobilePanelStyle}>
+        <div className="tagline" style={{ fontSize: mobileTouch ? '0.58rem' : undefined }}>Star Map</div>
+        <div className="title-md" style={{ fontSize: mobileTouch ? (isCompact ? '1.06rem' : '1.16rem') : undefined }}>Sector Overview</div>
+        <p className="body-copy" style={{ fontSize: mobileTouch ? (isCompact ? '0.74rem' : '0.8rem') : undefined, lineHeight: mobileTouch ? 1.45 : undefined }}>
           Press <strong>M</strong> again to return to flight mode. Press <strong>R</strong> to
           reset the ship to the starting corridor.
         </p>
@@ -41,10 +54,10 @@ function SectorPanel({ activeSection, mode }) {
   if (!activeSection) return null
 
   return (
-    <div className="panel panel-main right-mid" style={{ pointerEvents: 'auto' }}>
-      <div className="tagline">{activeSection.eyebrow}</div>
-      <div className="title-md">{activeSection.title}</div>
-      <p className="body-copy" style={{ whiteSpace: 'pre-line' }}>{activeSection.body}</p>
+    <div className="panel panel-main right-mid" style={{ pointerEvents: 'auto', ...mobilePanelStyle }}>
+      <div className="tagline" style={{ fontSize: mobileTouch ? '0.58rem' : undefined }}>{activeSection.eyebrow}</div>
+      <div className="title-md" style={{ fontSize: mobileTouch ? (isCompact ? '1.06rem' : '1.16rem') : undefined }}>{activeSection.title}</div>
+      <p className="body-copy" style={{ whiteSpace: 'pre-line', fontSize: mobileTouch ? (isCompact ? '0.74rem' : '0.8rem') : undefined, lineHeight: mobileTouch ? 1.45 : undefined }}>{activeSection.body}</p>
       <div className="pills" style={{ pointerEvents: 'auto' }}>
         {activeSection.cta.map((item) => {
           const label = typeof item === 'string' ? item : item.label
@@ -154,8 +167,8 @@ export function IntroOverlay({ phase, reveal, loadingProgress }) {
 }
 
 function ControlsPanel({ show }) {
-  const { isMobile, isCompact } = useViewportInfo()
-  if (!show) return null
+  const { isMobile, isCompact, isTouch } = useViewportInfo()
+  if (!show || isTouch) return null
   return (
     <div
       className="panel panel-main top-left"
@@ -179,7 +192,7 @@ function ControlsPanel({ show }) {
 export function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteracted, setShowControls, setInput }) {
   const { width, isMobile, isCompact, isShort, isTouch } = useViewportInfo()
 
-  if (!visible || !isTouch) return null
+  if (!visible || !isTouch || phase !== 'play') return null
 
   const stop = (e) => {
     e.preventDefault()
@@ -222,8 +235,18 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
   const boostHeight = isCompact ? 58 : 66
   const bottomOffset = isShort ? 12 : 18
   const isNarrow = width <= 390
+  const isTiny = width <= 360
   const boostBottom = bottomOffset + actionHeight * 2 + (isNarrow ? 26 : 18)
-  const dpadFontSize = isCompact ? '0.68rem' : '0.72rem'
+  const dpadFontSize = isTiny ? '0.62rem' : isCompact ? '0.68rem' : '0.72rem'
+  const topButtonHeight = isTiny ? 32 : isNarrow ? 34 : 36
+  const topButtonFontSize = isTiny ? '0.6rem' : isNarrow ? '0.64rem' : '0.68rem'
+  const topButtonMinWidth = isTiny ? 48 : isNarrow ? 56 : 60
+  const topHudMinWidth = isTiny ? 42 : isNarrow ? 50 : 54
+  const compactDpad = isTiny ? dpadSize - 6 : dpadSize
+  const compactActionWidth = isTiny ? actionWidth - 8 : actionWidth
+  const compactActionHeight = isTiny ? actionHeight - 6 : actionHeight
+  const compactBoostWidth = isTiny ? boostWidth - 12 : boostWidth
+  const compactBoostHeight = isTiny ? boostHeight - 8 : boostHeight
 
   return (
     <div
@@ -238,25 +261,25 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
       <div
         style={{
           position: 'absolute',
-          top: 12,
+          top: isTiny ? 68 : isShort ? 72 : 82,
           right: 12,
           display: 'flex',
-          gap: 8,
+          gap: 6,
           pointerEvents: 'auto',
         }}
       >
-        <button style={{ ...buttonBase, height: 38, minWidth: 62, padding: '0 14px', fontSize: '0.72rem' }} onPointerDown={tap(() => setMode((prev) => (prev === 'flight' ? 'map' : 'flight')))}>
+        <button style={{ ...buttonBase, height: topButtonHeight, minWidth: topButtonMinWidth, padding: isNarrow ? '0 8px' : '0 12px', fontSize: topButtonFontSize }} onPointerDown={tap(() => setMode((prev) => (prev === 'flight' ? 'map' : 'flight')))}>
           MAP
         </button>
-        <button style={{ ...buttonBase, height: 38, minWidth: 62, padding: '0 14px', fontSize: '0.72rem' }} onPointerDown={tap(() => { setMode('flight'); onReset() })}>
+        <button style={{ ...buttonBase, height: topButtonHeight, minWidth: topButtonMinWidth, padding: isNarrow ? '0 8px' : '0 12px', fontSize: topButtonFontSize }} onPointerDown={tap(() => { setMode('flight'); onReset() })}>
           RESET
         </button>
-        <button style={{ ...buttonBase, height: 38, minWidth: 54, padding: '0 12px', fontSize: '0.72rem' }} onPointerDown={tap(() => setShowControls((prev) => !prev))}>
+        <button style={{ ...buttonBase, height: topButtonHeight, minWidth: topHudMinWidth, padding: isNarrow ? '0 7px' : '0 10px', fontSize: topButtonFontSize }} onPointerDown={tap(() => setShowControls((prev) => !prev))}>
           HUD
         </button>
       </div>
 
-      {phase === 'play' && mode === 'flight' && (
+      {mode === 'flight' && (
         <>
           <div
             style={{
@@ -264,20 +287,20 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
               left: 12,
               bottom: bottomOffset,
               display: 'grid',
-              gridTemplateColumns: `${dpadSize}px ${dpadSize}px ${dpadSize}px`,
-              gridTemplateRows: `${dpadSize}px ${dpadSize}px ${dpadSize}px`,
-              gap: 8,
+              gridTemplateColumns: `${compactDpad}px ${compactDpad}px ${compactDpad}px`,
+              gridTemplateRows: `${compactDpad}px ${compactDpad}px ${compactDpad}px`,
+              gap: isTiny ? 6 : 8,
               pointerEvents: 'auto',
             }}
           >
             <div />
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: dpadFontSize }} onPointerDown={setPress('forward', true)} onPointerUp={setPress('forward', false)} onPointerCancel={setPress('forward', false)} onPointerLeave={setPress('forward', false)}>FWD</button>
+            <button style={{ ...buttonBase, width: compactDpad, height: compactDpad, fontSize: dpadFontSize }} onPointerDown={setPress('forward', true)} onPointerUp={setPress('forward', false)} onPointerCancel={setPress('forward', false)} onPointerLeave={setPress('forward', false)}>FWD</button>
             <div />
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: dpadFontSize }} onPointerDown={setPress('left', true)} onPointerUp={setPress('left', false)} onPointerCancel={setPress('left', false)} onPointerLeave={setPress('left', false)}>LEFT</button>
+            <button style={{ ...buttonBase, width: compactDpad, height: compactDpad, fontSize: dpadFontSize }} onPointerDown={setPress('left', true)} onPointerUp={setPress('left', false)} onPointerCancel={setPress('left', false)} onPointerLeave={setPress('left', false)}>LEFT</button>
             <div />
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: dpadFontSize }} onPointerDown={setPress('right', true)} onPointerUp={setPress('right', false)} onPointerCancel={setPress('right', false)} onPointerLeave={setPress('right', false)}>RIGHT</button>
+            <button style={{ ...buttonBase, width: compactDpad, height: compactDpad, fontSize: dpadFontSize }} onPointerDown={setPress('right', true)} onPointerUp={setPress('right', false)} onPointerCancel={setPress('right', false)} onPointerLeave={setPress('right', false)}>RIGHT</button>
             <div />
-            <button style={{ ...buttonBase, width: dpadSize, height: dpadSize, fontSize: dpadFontSize }} onPointerDown={setPress('back', true)} onPointerUp={setPress('back', false)} onPointerCancel={setPress('back', false)} onPointerLeave={setPress('back', false)}>BACK</button>
+            <button style={{ ...buttonBase, width: compactDpad, height: compactDpad, fontSize: dpadFontSize }} onPointerDown={setPress('back', true)} onPointerUp={setPress('back', false)} onPointerCancel={setPress('back', false)} onPointerLeave={setPress('back', false)}>BACK</button>
             <div />
           </div>
 
@@ -290,7 +313,7 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
               pointerEvents: 'auto',
             }}
           >
-            <button style={{ ...buttonBase, width: boostWidth, height: boostHeight, fontSize: '0.84rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>
+            <button style={{ ...buttonBase, width: compactBoostWidth, height: compactBoostHeight, fontSize: isTiny ? '0.74rem' : '0.84rem' }} onPointerDown={setPress('boost', true)} onPointerUp={setPress('boost', false)} onPointerCancel={setPress('boost', false)} onPointerLeave={setPress('boost', false)}>
               BOOST
             </button>
           </div>
@@ -301,13 +324,13 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
               right: 12,
               bottom: bottomOffset,
               display: 'grid',
-              gridTemplateColumns: `${actionWidth}px`,
-              gap: 8,
+              gridTemplateColumns: `${compactActionWidth}px`,
+              gap: isTiny ? 6 : 8,
               pointerEvents: 'auto',
             }}
           >
-            <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.82rem' }} onPointerDown={setPress('up', true)} onPointerUp={setPress('up', false)} onPointerCancel={setPress('up', false)} onPointerLeave={setPress('up', false)}>UP</button>
-            <button style={{ ...buttonBase, width: actionWidth, height: actionHeight, fontSize: '0.82rem' }} onPointerDown={setPress('down', true)} onPointerUp={setPress('down', false)} onPointerCancel={setPress('down', false)} onPointerLeave={setPress('down', false)}>DOWN</button>
+            <button style={{ ...buttonBase, width: compactActionWidth, height: compactActionHeight, fontSize: isTiny ? '0.74rem' : '0.82rem' }} onPointerDown={setPress('up', true)} onPointerUp={setPress('up', false)} onPointerCancel={setPress('up', false)} onPointerLeave={setPress('up', false)}>UP</button>
+            <button style={{ ...buttonBase, width: compactActionWidth, height: compactActionHeight, fontSize: isTiny ? '0.74rem' : '0.82rem' }} onPointerDown={setPress('down', true)} onPointerUp={setPress('down', false)} onPointerCancel={setPress('down', false)} onPointerLeave={setPress('down', false)}>DOWN</button>
           </div>
         </>
       )}
@@ -316,11 +339,16 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
 }
 
 export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted, showControls, isShipMoving }) {
-  const { isMobile, isCompact, isTouch } = useViewportInfo()
+  const { width, isMobile, isCompact, isShort, isTouch } = useViewportInfo()
+
+  if (phase !== 'play') return null
 
   const mobileTouch = isMobile && isTouch
-  const currentBottom = mobileTouch ? 252 : isMobile ? 12 : 24
-  const boostBottom = mobileTouch ? 156 : isMobile ? 12 : 24
+  const isNarrowMobile = mobileTouch && width <= 390
+  const isTinyMobile = mobileTouch && width <= 360
+  const currentTop = mobileTouch ? (isTinyMobile ? 112 : isShort ? 126 : 138) : undefined
+  const boostTop = mobileTouch ? (isTinyMobile ? 180 : isShort ? 204 : 224) : undefined
+  const showStatsPanel = !(mobileTouch && activeSection)
   const sharedMobileWidth = 'calc(100vw - 24px)'
 
   return (
@@ -328,18 +356,22 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
       <div className="vignette" />
       <div className="speed-lines" style={{ opacity: Math.min(1, boostLevel) }} />
 
-      <div className="panel panel-compact top-left" style={{ left: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 170 : 180 }}>
-        <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>DRYTRON SATELLAR</div>
-        <div className="title-sm" style={{ fontSize: isCompact ? '0.9rem' : undefined }}>ELUNERAS</div>
-      </div>
+      {!mobileTouch && (
+        <div className="panel panel-compact top-left" style={{ left: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 170 : 180 }}>
+          <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>DRYTRON SATELLAR</div>
+          <div className="title-sm" style={{ fontSize: isCompact ? '0.9rem' : undefined }}>ELUNERAS</div>
+        </div>
+      )}
 
       <ControlsPanel show={showControls && !isShipMoving} />
 
-      <div className="panel panel-compact top-right" style={{ right: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 106 : undefined }}>
-        <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>{mode === 'map' ? 'Mode' : 'Velocity'}</div>
-        <div className="kv" style={{ fontSize: isCompact ? '1rem' : undefined }}>{mode === 'map' ? 'MAP' : hud.speed}</div>
-        <div className="muted" style={{ fontSize: isCompact ? '0.68rem' : undefined }}>{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
-      </div>
+      {!mobileTouch && (
+        <div className="panel panel-compact top-right" style={{ right: isMobile ? 12 : undefined, top: isMobile ? 12 : undefined, maxWidth: isCompact ? 106 : undefined }}>
+          <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>{mode === 'map' ? 'Mode' : 'Velocity'}</div>
+          <div className="kv" style={{ fontSize: isCompact ? '1rem' : undefined }}>{mode === 'map' ? 'MAP' : hud.speed}</div>
+          <div className="muted" style={{ fontSize: isCompact ? '0.68rem' : undefined }}>{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
+        </div>
+      )}
 
       {!activeSection && (
         <div
@@ -348,49 +380,51 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
             position: 'absolute',
             left: isMobile ? 12 : 24,
             right: mobileTouch ? 12 : 'auto',
-            bottom: currentBottom,
+            top: currentTop,
+            bottom: mobileTouch ? 'auto' : 24,
             width: isCompact ? sharedMobileWidth : isMobile ? 'min(360px, calc(100vw - 24px))' : 'min(300px, calc(100vw - 420px))',
-            padding: isCompact ? '10px 12px' : '14px 16px',
+            padding: mobileTouch ? (isTinyMobile ? '7px 9px' : isNarrowMobile ? '8px 10px' : '9px 11px') : isCompact ? '10px 12px' : '14px 16px',
             zIndex: 12,
           }}
         >
-          <div className="tagline" style={{ fontSize: isCompact ? '0.62rem' : undefined }}>Current Sector</div>
-          <div className="title-sm" style={{ fontSize: isCompact ? '0.92rem' : '1rem', marginBottom: 6 }}>
-            {phase !== 'play' ? 'INTRO' : hud.sector}
+          <div className="tagline" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.54rem' : '0.58rem') : isCompact ? '0.62rem' : undefined }}>Current Sector</div>
+          <div className="title-sm" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.84rem' : '0.9rem') : isCompact ? '0.92rem' : '1rem', marginBottom: 6 }}>
+            {hud.sector}
           </div>
-          <p className="body-copy" style={{ fontSize: isCompact ? '0.78rem' : '0.88rem', lineHeight: 1.45, margin: 0 }}>
-            {phase !== 'play'
-              ? 'Stand by while the world loads and the navigation map unfolds.'
-              : hud.sectorHint}
+          <p className="body-copy" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.66rem' : '0.72rem') : isCompact ? '0.78rem' : '0.88rem', lineHeight: 1.45, margin: 0 }}>
+            {hud.sectorHint}
           </p>
         </div>
       )}
 
-      <SectorPanel activeSection={activeSection} mode={mode} />
+      <SectorPanel activeSection={activeSection} mode={mode} mobileTouch={mobileTouch} isCompact={isCompact} isShort={isShort} />
 
-      <div
-        className="panel panel-main bottom-right"
-        style={{
-          position: 'absolute',
-          left: mobileTouch ? 12 : 'auto',
-          right: isMobile ? 12 : 24,
-          bottom: boostBottom,
-          padding: isCompact ? '9px 11px' : '10px 14px',
-          fontSize: isCompact ? '0.74rem' : '0.85rem',
-          zIndex: 12,
-          width: mobileTouch ? sharedMobileWidth : isCompact ? 'calc(100vw - 24px)' : undefined,
-          maxWidth: isMobile ? 320 : undefined,
-        }}
-      >
-        <div className="grid-stats">
-          <div className="label" style={{ fontSize: isCompact ? '0.62rem' : '0.7rem' }}>Boost</div>
-          <div style={{ fontSize: isCompact ? '0.76rem' : undefined }}>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
-          <div className="label" style={{ fontSize: isCompact ? '0.62rem' : '0.7rem' }}>Position</div>
-          <div style={{ fontSize: isCompact ? '0.72rem' : '0.8rem' }}>{hud.position}</div>
+      {phase === 'play' && showStatsPanel && (
+        <div
+          className="panel panel-main bottom-right"
+          style={{
+            position: 'absolute',
+            left: mobileTouch ? 12 : 'auto',
+            right: isMobile ? 12 : 24,
+            top: boostTop,
+            bottom: mobileTouch ? 'auto' : 24,
+            padding: mobileTouch ? (isTinyMobile ? '6px 9px' : isNarrowMobile ? '7px 10px' : '8px 11px') : isCompact ? '9px 11px' : '10px 14px',
+            fontSize: isCompact ? '0.74rem' : '0.85rem',
+            zIndex: 12,
+            width: mobileTouch ? sharedMobileWidth : isCompact ? 'calc(100vw - 24px)' : undefined,
+            maxWidth: mobileTouch ? 'none' : isMobile ? 320 : undefined,
+          }}
+        >
+          <div className="grid-stats">
+            <div className="label" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.5rem' : '0.56rem') : isCompact ? '0.62rem' : '0.7rem' }}>Boost</div>
+            <div style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.68rem' : '0.74rem') : isCompact ? '0.76rem' : undefined }}>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
+            <div className="label" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.5rem' : '0.56rem') : isCompact ? '0.62rem' : '0.7rem' }}>Position</div>
+            <div style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.66rem' : '0.72rem') : isCompact ? '0.72rem' : '0.8rem' }}>{hud.position}</div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {!hasInteracted && !isMobile && (
+      {phase === 'play' && !hasInteracted && !isMobile && (
         <div className="panel panel-main bottom-left">
           <div className="tagline">Concept</div>
           <p className="body-copy">
