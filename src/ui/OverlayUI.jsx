@@ -352,6 +352,7 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
   const isTinyMobile = mobileTouch && width <= 360
   const currentTop = mobileTouch ? (isTinyMobile ? 112 : isShort ? 126 : 138) : undefined
   const boostTop = mobileTouch ? (isTinyMobile ? 180 : isShort ? 204 : 224) : undefined
+  const showFlightHudPanels = mode !== 'map'
   const showStatsPanel = !(mobileTouch && activeSection)
   const sharedMobileWidth = 'calc(100vw - 24px)'
   const statsPanelWidth = mobileTouch
@@ -390,7 +391,7 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
         </div>
       )}
 
-      {!activeSection && (
+      {showFlightHudPanels && !activeSection && (
         <div
           className="panel panel-main"
           style={{
@@ -416,7 +417,7 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
 
       <SectorPanel activeSection={activeSection} mode={mode} mobileTouch={mobileTouch} isCompact={isCompact} isShort={isShort} />
 
-      {phase === 'play' && showStatsPanel && (
+      {phase === 'play' && showFlightHudPanels && showStatsPanel && (
         <div
           className="panel panel-main bottom-right"
           style={{
