@@ -30,6 +30,19 @@ body {
   min-width: 320px;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .app,
+  .overlay,
+  .panel,
+  .pill,
+  button {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 strong {
   color: #ffffff;
   font-weight: 650;

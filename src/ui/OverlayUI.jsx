@@ -93,7 +93,16 @@ export function IntroOverlay({ phase, reveal, loadingProgress }) {
   const progressValue = loading ? Math.min(90, Math.round(loadingProgress)) : introPercent
 
   return (
-    <div className="overlay" style={{ pointerEvents: 'none' }}>
+    <div
+      className="overlay"
+      onContextMenu={(e) => e.preventDefault()}
+      style={{
+        pointerEvents: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+    >
       <div
         style={{
           position: 'absolute',
@@ -249,12 +258,16 @@ export function MobileControls({ visible, phase, mode, setMode, onReset, setHasI
 
   return (
     <div
+      onContextMenu={(e) => e.preventDefault()}
       style={{
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
         zIndex: 21,
         touchAction: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
       }}
     >
       <div
@@ -348,7 +361,15 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
       : undefined
 
   return (
-    <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
+    <div
+      className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}
+      onContextMenu={(e) => e.preventDefault()}
+      style={{
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+    >
       <div className="vignette" />
       <div className="speed-lines" style={{ opacity: Math.min(1, boostLevel) }} />
 
@@ -379,7 +400,7 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
             top: currentTop,
             bottom: mobileTouch ? 'auto' : 24,
             width: isCompact ? sharedMobileWidth : isMobile ? 'min(360px, calc(100vw - 24px))' : 'min(300px, calc(100vw - 420px))',
-            padding: mobileTouch ? (isTinyMobile ? '7px 9px' : isNarrowMobile ? '8px 10px' : '9px 11px') : isCompact ? '10px 12px' : '14px 16px',
+            padding: mobileTouch ? (isTinyMobile ? '7px 12px' : isNarrowMobile ? '8px 13px' : '9px 14px') : isCompact ? '10px 12px' : '14px 16px',
             zIndex: 12,
           }}
         >
@@ -404,14 +425,14 @@ export function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted
             right: isMobile ? 12 : 24,
             top: boostTop,
             bottom: mobileTouch ? 'auto' : 24,
-            padding: mobileTouch ? (isTinyMobile ? '6px 9px' : isNarrowMobile ? '7px 10px' : '8px 11px') : isCompact ? '9px 11px' : '10px 14px',
+            padding: mobileTouch ? (isTinyMobile ? '6px 12px' : isNarrowMobile ? '7px 13px' : '8px 14px') : isCompact ? '9px 11px' : '10px 14px',
             fontSize: isCompact ? '0.74rem' : '0.85rem',
             zIndex: 12,
             width: statsPanelWidth,
             maxWidth: mobileTouch ? 'none' : isMobile ? 320 : undefined,
           }}
         >
-          <div className="grid-stats" style={{ gap: mobileTouch ? (isTinyMobile ? '4px 14px' : '5px 16px') : undefined }}>
+          <div className="grid-stats" style={{ gap: mobileTouch ? (isTinyMobile ? '4px 12px' : '5px 14px') : undefined, paddingLeft: mobileTouch ? 2 : 0 }}>
             <div className="label" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.5rem' : '0.56rem') : isCompact ? '0.62rem' : '0.7rem' }}>Boost</div>
             <div style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.68rem' : '0.74rem') : isCompact ? '0.76rem' : undefined }}>{hud.boost ? 'Active' : boostLevel > 0.1 ? 'Charging' : 'Standby'}</div>
             <div className="label" style={{ fontSize: mobileTouch ? (isTinyMobile ? '0.5rem' : '0.56rem') : isCompact ? '0.62rem' : '0.7rem' }}>Position</div>
