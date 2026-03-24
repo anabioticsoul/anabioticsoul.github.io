@@ -13,8 +13,12 @@ const SECTION_DEFS = [
     pos: [-18, 5, -55],
     eyebrow: 'Identity',
     body:
-      'Introduce yourself here with a concise mission statement, your research direction, design philosophy, or the story behind the site.',
-    cta: ['Profile', 'Timeline', 'CV'],
+      'I work on configuration security and software security, with a focus on understanding how real-world software misconfigurations arise, how they can be diagnosed, and how configuration-related risks can be reduced in practice. My research combines empirical analysis, dataset construction, and tooling for configuration troubleshooting and security-oriented software systems.',
+    cta: [
+      { label: 'GitHub Profile', href: 'https://github.com/anabioticsoul' },
+      { label: 'Datasets', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
+      { label: 'Email', href: 'mailto:anabioticsoul@gmail.com' },
+    ],
     type: 'planet',
     color: '#6ea8ff',
   },
@@ -25,8 +29,12 @@ const SECTION_DEFS = [
     pos: [18, -2, -92],
     eyebrow: 'Selected Works',
     body:
-      'Use this sector to present flagship projects, each with a short summary, links, and a small visual card system.',
-    cta: ['Featured', 'Archive', 'Source'],
+      'My projects center on real-world configuration analysis and security research. Featured work includes misconfiguration_datasets, a public collection of real-world misconfiguration cases, troubleshooting studies, and reproduced scenarios, and CRSExtractor, a tool for automated configuration option read-site extraction toward IoT cloud infrastructure.',
+    cta: [
+      { label: 'misconfiguration_datasets', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
+      { label: 'CRSExtractor', href: 'https://github.com/anabioticsoul/CRSExtractor' },
+      { label: 'GitHub', href: 'https://github.com/anabioticsoul' },
+    ],
     type: 'ringed',
     color: '#9f8cff',
   },
@@ -37,8 +45,12 @@ const SECTION_DEFS = [
     pos: [-14, 8, -132],
     eyebrow: 'Research Output',
     body:
-      'List papers, datasets, talks, replication packages, and awards. This sector works especially well for an academic homepage.',
-    cta: ['Papers', 'Datasets', 'Talks'],
+      'My recent publications focus on software configuration analysis and empirical misconfiguration research: CRSExtractor: Automated Configuration Option Read Sites Extraction towards IoT Cloud Infrastructure; Rethinking Software Misconfigurations in the Real World: An Empirical Study and Literature Analysis; and Multi-Misconfiguration Diagnosis via Identifying Correlated Configuration Parameters.',
+    cta: [
+      { label: 'CRSExtractor', href: 'https://github.com/anabioticsoul/CRSExtractor' },
+      { label: 'Dataset Repo', href: 'https://github.com/anabioticsoul/misconfiguration_datasets' },
+      { label: 'GitHub Profile', href: 'https://github.com/anabioticsoul' },
+    ],
     type: 'binary',
     color: '#85d7ff',
   },
@@ -49,8 +61,12 @@ const SECTION_DEFS = [
     pos: [15, 10, -172],
     eyebrow: 'Connect',
     body:
-      'Place your email, GitHub, social accounts, CV link, and a short invitation for collaboration here.',
-    cta: ['Email', 'GitHub', 'Links'],
+      'Feel free to reach out for research collaboration, datasets, or discussion on configuration security and software misconfigurations. Email: anabioticsoul@gmail.com. GitHub: anabioticsoul.',
+    cta: [
+      { label: 'anabioticsoul@gmail.com', href: 'mailto:anabioticsoul@gmail.com' },
+      { label: 'GitHub', href: 'https://github.com/anabioticsoul' },
+      { label: 'Repositories', href: 'https://github.com/anabioticsoul?tab=repositories' },
+    ],
     type: 'station',
     color: '#ffd36e',
   },
@@ -868,11 +884,22 @@ function SectorPanel({ activeSection, mode }) {
       <div className="title-md">{activeSection.title}</div>
       <p className="body-copy">{activeSection.body}</p>
       <div className="pills">
-        {activeSection.cta.map((label) => (
-          <span key={label} className="pill">
-            {label}
-          </span>
-        ))}
+        {activeSection.cta.map((item) => {
+          const href = typeof item === 'string' ? '#' : item.href
+          const label = typeof item === 'string' ? item : item.label
+          const isExternal = href && !href.startsWith('mailto:')
+          return (
+            <a
+              key={label}
+              className="pill"
+              href={href}
+              target={isExternal ? '_blank' : undefined}
+              rel={isExternal ? 'noreferrer' : undefined}
+            >
+              {label}
+            </a>
+          )
+        })}
       </div>
     </div>
   )
@@ -919,7 +946,7 @@ function IntroOverlay({ phase, reveal }) {
   )
 }
 
-function HUD({ hud, activeSection, mode, phase, boostLevel }) {
+function HUD({ hud, activeSection, mode, phase, boostLevel, hasInteracted }) {
   return (
     <div className={`overlay ${boostLevel > 0.08 ? 'overlay-boost' : ''}`}>
       <div className="vignette" />
@@ -936,15 +963,17 @@ function HUD({ hud, activeSection, mode, phase, boostLevel }) {
         <div className="muted">{mode === 'map' ? 'press M to exit' : 'units / sec'}</div>
       </div>
 
-      <div className="panel panel-main left-mid">
-        <div className="tagline">Current Sector</div>
-        <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
-        <p className="body-copy">
-          {phase !== 'play'
-            ? 'Stand by while the world loads and the navigation map unfolds.'
-            : hud.sectorHint}
-        </p>
-      </div>
+      {!activeSection && (
+        <div className="panel panel-main left-mid">
+          <div className="tagline">Current Sector</div>
+          <div className="title-sm">{phase !== 'play' ? 'INTRO' : hud.sector}</div>
+          <p className="body-copy">
+            {phase !== 'play'
+              ? 'Stand by while the world loads and the navigation map unfolds.'
+              : hud.sectorHint}
+          </p>
+        </div>
+      )}
 
       <SectorPanel activeSection={activeSection} mode={mode} />
 
@@ -966,13 +995,15 @@ function HUD({ hud, activeSection, mode, phase, boostLevel }) {
         </div>
       </div>
 
-      <div className="panel panel-main bottom-left">
-        <div className="tagline">Concept</div>
-        <p className="body-copy">
-          A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
-          The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
-        </p>
-      </div>
+      {!hasInteracted && (
+        <div className="panel panel-main bottom-left">
+          <div className="tagline">Concept</div>
+          <p className="body-copy">
+            A Bruno-Simon-inspired 3D portfolio direction, reimagined as a spaceship navigation experience in deep space.
+            The controllable ship has been replaced with a dragon-like mechanical flagship inspired by your reference image.
+          </p>
+        </div>
+      )}
 
       {phase === 'play' && (
         <div className={`crosshair ${boostLevel > 0.2 ? 'crosshair-boost' : ''}`}>
@@ -999,12 +1030,16 @@ export default function App() {
   const [reveal, setReveal] = useState(0)
   const [resetTick, setResetTick] = useState(0)
   const [boostLevel, setBoostLevel] = useState(0)
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('intro'), 300)
     const t2 = setTimeout(() => setPhase('play'), 1800)
 
-    const skipToPlay = () => setPhase('play')
+    const skipToPlay = () => {
+      setHasInteracted(true)
+      setPhase('play')
+    }
     window.addEventListener('pointerdown', skipToPlay)
     window.addEventListener('keydown', skipToPlay)
 
@@ -1032,7 +1067,9 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (phase !== 'play' || e.repeat) return
+      if (e.repeat) return
+      setHasInteracted(true)
+      if (phase !== 'play') return
 
       if (e.code === 'KeyM') {
         setMode((prev) => (prev === 'flight' ? 'map' : 'flight'))
@@ -1068,7 +1105,7 @@ export default function App() {
         </Canvas>
       </div>
 
-      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} />
+      <HUD hud={hud} activeSection={activeSection} mode={mode} phase={phase} boostLevel={boostLevel} hasInteracted={hasInteracted} />
       <IntroOverlay phase={phase} reveal={reveal} />
     </div>
   )
