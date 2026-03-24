@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles, Stars, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 import Faifnir from './Fafnir'
+import SpaceBackdrop from './SpaceBackdrop'
 import currentMarkerUrl from '../public/map-marker.svg'
 const SECTION_DEFS = [
   {
@@ -87,7 +88,7 @@ function useKeys() {
   return keys
 }
 
-function SpaceBackdrop() {
+function SpaceEnvironment() {
   return (
     <>
       <color attach="background" args={['#02040c']} />
@@ -1165,7 +1166,8 @@ export default function App() {
     <div className="app">
       <div className="canvas-wrap">
         <Canvas camera={{ position: [0, 3, 32], fov: 52 }} gl={{ antialias: true }}>
-          <SpaceBackdrop />
+          <SpaceEnvironment />
+          <SpaceBackdrop position={[0, 8, -150]} scale={22} rotation={[0, 0, 0]} />
           <SceneController
             setHud={setHud}
             activeSection={activeSection}
