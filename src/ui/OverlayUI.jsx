@@ -201,7 +201,7 @@ function ControlsPanel({ show }) {
 export function MobileControls({ visible, phase, mode, setMode, onReset, setHasInteracted, setShowControls, setInput }) {
   const { width, isMobile, isCompact, isShort, isTouch } = useViewportInfo()
 
-  if (!visible || !isTouch || phase !== 'play') return null
+  if (!visible || !isMobile || !isTouch || phase !== 'play') return null
 
   const stop = (e) => {
     e.preventDefault()

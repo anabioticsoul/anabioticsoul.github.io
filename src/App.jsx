@@ -59,9 +59,9 @@ export default function App() {
   })
 
   useEffect(() => {
-    if (!viewport.isTouch) return
+    if (!(viewport.isMobile && viewport.isTouch)) return
     setShowControls(true)
-  }, [viewport.isTouch])
+  }, [viewport.isMobile, viewport.isTouch])
 
   useEffect(() => {
     const clearTouchInput = () => {
